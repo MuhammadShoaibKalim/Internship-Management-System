@@ -1,0 +1,2167 @@
+{
+    "info": {
+        "_postman_id": "ims-api-collection-v2",
+        "name": "IMS - Internship Management System",
+        "description": "Complete API collection for IMS.\n\n🔁 CORRECT TESTING FLOW:\n1. Auth → Register & Verify all 4 users\n2. Admin → Setup departments, approve industry\n3. Industry → Create internship postings\n4. Student → Browse hub, apply, submit logs\n5. Industry → Review applicants, approve, evaluate\n6. Supervisor → Review logs, site visits, final marking\n7. Common Settings → Profile, password for all roles\n\n⚙️ SETUP NOTES:\n- Login requests auto-save JWT token to {{token}} variable\n- IDs auto-save via test scripts for request chaining\n- Always run Login for the correct role BEFORE testing that role's APIs",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "variable": [
+        {
+            "key": "baseUrl",
+            "value": "http://localhost:4000/api"
+        },
+        {
+            "key": "token",
+            "value": ""
+        },
+        {
+            "key": "studentToken",
+            "value": ""
+        },
+        {
+            "key": "industryToken",
+            "value": ""
+        },
+        {
+            "key": "supervisorToken",
+            "value": ""
+        },
+        {
+            "key": "adminToken",
+            "value": ""
+        },
+        {
+            "key": "studentId",
+            "value": ""
+        },
+        {
+            "key": "industryId",
+            "value": ""
+        },
+        {
+            "key": "supervisorId",
+            "value": ""
+        },
+        {
+            "key": "adminId",
+            "value": ""
+        },
+        {
+            "key": "internshipId",
+            "value": ""
+        },
+        {
+            "key": "applicationId",
+            "value": ""
+        },
+        {
+            "key": "logId",
+            "value": ""
+        },
+        {
+            "key": "departmentId",
+            "value": ""
+        },
+        {
+            "key": "visitId",
+            "value": ""
+        },
+        {
+            "key": "resetToken",
+            "value": ""
+        }
+    ],
+    "item": [
+        {
+            "name": "1. 🔐 Auth — Register & Verify",
+            "description": "STEP 1: Register all 4 users → Verify OTP for each → Login to get tokens.\n\n⚠️ After each Register, check your email for OTP, then call Verify OTP with that code.",
+            "item": [
+                {
+                    "name": "1.1 Register Admin",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// Admin auto-activates (status: active), but still needs OTP for email verification"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"System Admin\",\n    \"email\": \"admin@test.com\",\n    \"password\": \"Test@1234\",\n    \"passwordConfirm\": \"Test@1234\",\n    \"role\": \"admin\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/signup",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "signup"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.2 Verify Admin OTP",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set('token', jsonData.token);",
+                                    "    pm.collectionVariables.set('adminToken', jsonData.token);",
+                                    "}",
+                                    "if (jsonData.data && jsonData.data.user) {",
+                                    "    pm.collectionVariables.set('adminId', jsonData.data.user._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@test.com\",\n    \"otp\": \"PASTE_OTP_FROM_EMAIL\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/verifyOTP",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "verifyOTP"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.3 Register Industry",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"TechFlow Solutions\",\n    \"email\": \"industry@test.com\",\n    \"password\": \"Test@1234\",\n    \"passwordConfirm\": \"Test@1234\",\n    \"role\": \"industry\",\n    \"companyName\": \"TechFlow Solutions\",\n    \"website\": \"https://techflow.io\",\n    \"companyAddress\": \"Dubai Silicon Oasis, UAE\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/signup",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "signup"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.4 Verify Industry OTP",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set('token', jsonData.token);",
+                                    "    pm.collectionVariables.set('industryToken', jsonData.token);",
+                                    "}",
+                                    "if (jsonData.data && jsonData.data.user) {",
+                                    "    pm.collectionVariables.set('industryId', jsonData.data.user._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"industry@test.com\",\n    \"otp\": \"PASTE_OTP_FROM_EMAIL\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/verifyOTP",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "verifyOTP"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.5 Register Supervisor",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Dr. Salman Ahmed\",\n    \"email\": \"supervisor@test.com\",\n    \"password\": \"Test@1234\",\n    \"passwordConfirm\": \"Test@1234\",\n    \"role\": \"supervisor\",\n    \"universityId\": \"FAC-2020-045\",\n    \"department\": \"CS\",\n    \"specialization\": \"Machine Learning, Data Science\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/signup",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "signup"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.6 Verify Supervisor OTP",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set('token', jsonData.token);",
+                                    "    pm.collectionVariables.set('supervisorToken', jsonData.token);",
+                                    "}",
+                                    "if (jsonData.data && jsonData.data.user) {",
+                                    "    pm.collectionVariables.set('supervisorId', jsonData.data.user._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"supervisor@test.com\",\n    \"otp\": \"PASTE_OTP_FROM_EMAIL\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/verifyOTP",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "verifyOTP"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.7 Register Student",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Shoaib Ahmed\",\n    \"email\": \"student@test.com\",\n    \"password\": \"Test@1234\",\n    \"passwordConfirm\": \"Test@1234\",\n    \"role\": \"student\",\n    \"universityId\": \"2021-CS-582\",\n    \"department\": \"CS\",\n    \"cgpa\": 3.82\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/signup",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "signup"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.8 Verify Student OTP",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set('token', jsonData.token);",
+                                    "    pm.collectionVariables.set('studentToken', jsonData.token);",
+                                    "}",
+                                    "if (jsonData.data && jsonData.data.user) {",
+                                    "    pm.collectionVariables.set('studentId', jsonData.data.user._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"student@test.com\",\n    \"otp\": \"PASTE_OTP_FROM_EMAIL\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/verifyOTP",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "verifyOTP"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.9 Login Admin",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set('token', jsonData.token);",
+                                    "    pm.collectionVariables.set('adminToken', jsonData.token);",
+                                    "}",
+                                    "if (jsonData.data && jsonData.data.user) {",
+                                    "    pm.collectionVariables.set('adminId', jsonData.data.user._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"admin@test.com\",\n    \"password\": \"Test@1234\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.10 Login Industry",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set('token', jsonData.token);",
+                                    "    pm.collectionVariables.set('industryToken', jsonData.token);",
+                                    "}",
+                                    "if (jsonData.data && jsonData.data.user) {",
+                                    "    pm.collectionVariables.set('industryId', jsonData.data.user._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"industry@test.com\",\n    \"password\": \"Test@1234\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.11 Login Supervisor",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set('token', jsonData.token);",
+                                    "    pm.collectionVariables.set('supervisorToken', jsonData.token);",
+                                    "}",
+                                    "if (jsonData.data && jsonData.data.user) {",
+                                    "    pm.collectionVariables.set('supervisorId', jsonData.data.user._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"supervisor@test.com\",\n    \"password\": \"Test@1234\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "1.12 Login Student",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.token) {",
+                                    "    pm.collectionVariables.set('token', jsonData.token);",
+                                    "    pm.collectionVariables.set('studentToken', jsonData.token);",
+                                    "}",
+                                    "if (jsonData.data && jsonData.data.user) {",
+                                    "    pm.collectionVariables.set('studentId', jsonData.data.user._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"student@test.com\",\n    \"password\": \"Test@1234\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/login",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "login"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "2. 🔑 Auth — Password Management",
+            "description": "Test forgot password, reset OTP, reset password, and authenticated password update.",
+            "item": [
+                {
+                    "name": "2.1 Forgot Password (Send OTP)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"student@test.com\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/forgotPassword",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "forgotPassword"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "2.2 Verify Reset OTP",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.resetToken) {",
+                                    "    pm.collectionVariables.set('resetToken', jsonData.resetToken);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"email\": \"student@test.com\",\n    \"otp\": \"PASTE_RESET_OTP_HERE\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/verifyResetOTP",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "verifyResetOTP"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "2.3 Reset Password (via token)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"password\": \"NewTest@1234\",\n    \"passwordConfirm\": \"NewTest@1234\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/resetPassword/{{resetToken}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "resetPassword",
+                                "{{resetToken}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "2.4 Update My Password (Authenticated)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"passwordCurrent\": \"Test@1234\",\n    \"password\": \"NewTest@1234\",\n    \"passwordConfirm\": \"NewTest@1234\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/updateMyPassword",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "updateMyPassword"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "2.5 Logout",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/auth/logout",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "auth",
+                                "logout"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "3. 🛡️ Admin — Platform Setup",
+            "description": "STEP 2: Login as Admin first (1.9).\nAdmin sets up departments and verifies industry partners BEFORE they can post.",
+            "item": [
+                {
+                    "name": "3.1 Get Admin Dashboard Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/stats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "stats"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3.2 Create Department",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.department) {",
+                                    "    pm.collectionVariables.set('departmentId', jsonData.data.department._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Computer Science\",\n    \"code\": \"CS\",\n    \"description\": \"Department of Computer Science & Information Technology\",\n    \"head\": \"Dr. Nasir Ahmed\",\n    \"status\": \"active\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/departments",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "departments"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3.3 Get All Departments",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/departments",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "departments"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3.4 Update Department",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"head\": \"Dr. Ali Khan\",\n    \"description\": \"Department of CS, AI & Data Science\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/departments/{{departmentId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "departments",
+                                "{{departmentId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3.5 Get All Users",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/users",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "users"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3.6 Get Users (filter by role)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/users?role=industry",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "users"
+                            ],
+                            "query": [
+                                {
+                                    "key": "role",
+                                    "value": "industry"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3.7 Update User Status (Activate)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"active\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/users/{{studentId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "users",
+                                "{{studentId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3.8 Verify Industry (Approve)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"active\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/verify-industry/{{industryId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "verify-industry",
+                                "{{industryId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3.9 Get System Settings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/settings",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "settings"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "3.10 Update System Setting",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"key\": \"maxLoginAttempts\",\n    \"value\": 5,\n    \"category\": \"security\",\n    \"description\": \"Max login attempts before account lockout\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/settings",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "settings"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "4. 🏢 Industry — Create Postings",
+            "description": "STEP 3: Login as Industry first (1.10).\nIndustry creates internship postings so students can apply.",
+            "item": [
+                {
+                    "name": "4.1 Get Industry Dashboard Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/industry/stats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "industry",
+                                "stats"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "4.2 Create Internship Posting",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.internship) {",
+                                    "    pm.collectionVariables.set('internshipId', jsonData.data.internship._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"title\": \"Full Stack Developer Intern\",\n    \"description\": \"Join our engineering team to build scalable web applications using MERN stack. You will work on real client projects and gain experience with CI/CD pipelines.\",\n    \"location\": \"Lahore, Pakistan\",\n    \"type\": \"Full-time\",\n    \"duration\": \"3 Months\",\n    \"stipend\": \"PKR 50,000/month\",\n    \"tags\": [\"React\", \"Node.js\", \"MongoDB\", \"Express\"],\n    \"skillsRequired\": [\"JavaScript\", \"React.js\", \"Node.js\", \"REST APIs\", \"Git\"],\n    \"deadline\": \"2026-04-30\",\n    \"status\": \"open\",\n    \"category\": \"Web Dev\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/industry/postings",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "industry",
+                                "postings"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "4.3 Get My Postings",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/industry/postings",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "industry",
+                                "postings"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "4.4 Update Internship Posting",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"stipend\": \"PKR 75,000/month\",\n    \"title\": \"Senior Full Stack Developer Intern\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/industry/postings/{{internshipId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "industry",
+                                "postings",
+                                "{{internshipId}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "5. 🎓 Student — Browse & Apply",
+            "description": "STEP 4: Login as Student first (1.12).\nStudent browses the hub, applies to internship created in Step 3, uploads CV, submits logs.",
+            "item": [
+                {
+                    "name": "5.1 Get Student Dashboard Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/student/stats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "student",
+                                "stats"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.2 Get My Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/student/profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "student",
+                                "profile"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.3 Update My Profile",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Shoaib Ahmed\",\n    \"phone\": \"+92 300 1234567\",\n    \"address\": \"Lahore, Pakistan\",\n    \"studentMeta\": {\n        \"cgpa\": 3.90,\n        \"department\": \"CS\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/student/update-profile",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "student",
+                                "update-profile"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.4 Upload CV",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"cvUrl\": \"https://drive.google.com/fake-cv-url.pdf\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/student/upload-cv",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "student",
+                                "upload-cv"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.5 Browse Internship Hub",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/internships",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "internships"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.6 Browse Hub with Filters",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/internships?category=Web Dev&type=Full-time",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "internships"
+                            ],
+                            "query": [
+                                {
+                                    "key": "category",
+                                    "value": "Web Dev"
+                                },
+                                {
+                                    "key": "type",
+                                    "value": "Full-time"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.7 View Internship Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/internships/{{internshipId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "internships",
+                                "{{internshipId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.8 Bookmark Internship (Toggle)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/student/toggle-bookmark/{{internshipId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "student",
+                                "toggle-bookmark",
+                                "{{internshipId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.9 Apply to Internship ⭐",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.application) {",
+                                    "    pm.collectionVariables.set('applicationId', jsonData.data.application._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"internshipId\": \"{{internshipId}}\",\n    \"resume\": \"https://drive.google.com/resume.pdf\",\n    \"coverLetter\": \"I am a passionate CS student with strong MERN stack skills. I am eager to apply my knowledge in a real-world setting and contribute to your team.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/applications/apply",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "applications",
+                                "apply"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.10 Get My Applications",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/applications/my-applications",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "applications",
+                                "my-applications"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.11 Get Application Detail",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/applications/{{applicationId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "applications",
+                                "{{applicationId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "5.12 Get My Certificates",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/student/certificates",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "student",
+                                "certificates"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "6. 🏢 Industry — Review & Manage",
+            "description": "STEP 5: Login as Industry (1.10).\nIndustry reviews applicants, approves the student, manages interns, and submits evaluations.",
+            "item": [
+                {
+                    "name": "6.1 Get Applicants (All)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/industry/applicants",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "industry",
+                                "applicants"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "6.2 Get Applicants (Pending)",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/industry/applicants?status=pending",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "industry",
+                                "applicants"
+                            ],
+                            "query": [
+                                {
+                                    "key": "status",
+                                    "value": "pending"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "6.3 Approve Applicant ⭐",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"approved\",\n    \"feedback\": \"Excellent profile! Welcome to the TechFlow team.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/industry/applicants/{{applicationId}}/status",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "industry",
+                                "applicants",
+                                "{{applicationId}}",
+                                "status"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "6.4 Get Active Interns",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/industry/interns",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "industry",
+                                "interns"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "6.5 Submit Performance Evaluation",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"student\": \"{{studentId}}\",\n    \"application\": \"{{applicationId}}\",\n    \"period\": \"First Month\",\n    \"metrics\": {\n        \"professionalism\": 9,\n        \"technicalSkills\": 8,\n        \"communication\": 7,\n        \"punctuality\": 10,\n        \"learningAgility\": 9\n    },\n    \"comments\": \"Outstanding first month performance. Strong technical aptitude and excellent time management.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/industry/evaluations",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "industry",
+                                "evaluations"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "6.6 Get All Evaluations",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/industry/evaluations",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "industry",
+                                "evaluations"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "7. 📝 Student — Submit Logs",
+            "description": "STEP 6: Login as Student (1.12).\nAfter being approved by industry, student submits weekly logs.",
+            "item": [
+                {
+                    "name": "7.1 Submit Weekly Log",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.log) {",
+                                    "    pm.collectionVariables.set('logId', jsonData.data.log._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"applicationId\": \"{{applicationId}}\",\n    \"tasksPerformed\": \"Built REST API endpoints for user module, integrated JWT authentication, created Mongoose schemas for internship and application models.\",\n    \"challenges\": \"Faced issues with MongoDB aggregation pipelines for dashboard stats. Resolved by restructuring the query with $lookup.\",\n    \"learnings\": \"Learned advanced MongoDB aggregation, Express middleware patterns, and proper error handling.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/logs/submit-log",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "logs",
+                                "submit-log"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "7.2 Get My Logs",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/logs/my-logs",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "logs",
+                                "my-logs"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "7.3 Get Single Log",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/logs/{{logId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "logs",
+                                "{{logId}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "8. 👨‍🏫 Supervisor — Review & Mark",
+            "description": "STEP 7: Login as Supervisor (1.11).\nSupervisor reviews student logs, schedules site visits, and does final marking.",
+            "item": [
+                {
+                    "name": "8.1 Get Supervisor Dashboard Stats",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{supervisorToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/supervisor/stats",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "supervisor",
+                                "stats"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "8.2 Get Assigned Students",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{supervisorToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/supervisor/students",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "supervisor",
+                                "students"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "8.3 Review Log (Approve)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{supervisorToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"approved\",\n    \"supervisorComments\": \"Well-documented log. Excellent progress on the REST API module.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/supervisor/logs/{{logId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "supervisor",
+                                "logs",
+                                "{{logId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "8.4 Review Log (Reject)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{supervisorToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"rejected\",\n    \"supervisorComments\": \"Log is too brief. Please elaborate on challenges and specific learnings.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/supervisor/logs/{{logId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "supervisor",
+                                "logs",
+                                "{{logId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "8.5 Schedule Site Visit",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.data && jsonData.data.visit) {",
+                                    "    pm.collectionVariables.set('visitId', jsonData.data.visit._id);",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{supervisorToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"student\": \"{{studentId}}\",\n    \"company\": \"TechFlow Solutions\",\n    \"address\": \"Office #402, IT Tower, Lahore\",\n    \"date\": \"2026-03-20\",\n    \"time\": \"10:00 AM\",\n    \"contactPerson\": \"Ahmed Ali (HR Manager)\",\n    \"status\": \"upcoming\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/supervisor/visits",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "supervisor",
+                                "visits"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "8.6 Get All Site Visits",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{supervisorToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/supervisor/visits",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "supervisor",
+                                "visits"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "8.7 Submit Final Marking ⭐",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{supervisorToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"studentId\": \"{{studentId}}\",\n    \"applicationId\": \"{{applicationId}}\",\n    \"metrics\": {\n        \"technicalProficiency\": 88,\n        \"softSkills\": 85,\n        \"logConsistency\": 92,\n        \"industryFeedback\": 90\n    },\n    \"industryGpa\": 3.75,\n    \"recommendation\": \"Highly recommended for permanent placement. Exceptional technical proficiency and professional conduct throughout the internship.\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/supervisor/marking",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "supervisor",
+                                "marking"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "9. 📊 Admin — Reports & Cleanup",
+            "description": "STEP 8: Login as Admin (1.9).\nAdmin views global reports after full cycle, manages cleanup.",
+            "item": [
+                {
+                    "name": "9.1 Get Global Reports",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/reports",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "reports"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "9.2 Verify Industry (Reject example)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"status\": \"rejected\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/verify-industry/{{industryId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "verify-industry",
+                                "{{industryId}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "9.3 Delete Department",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{adminToken}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/admin/departments/{{departmentId}}",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "admin",
+                                "departments",
+                                "{{departmentId}}"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "10. ⚙️ Common User Settings",
+            "description": "Works for ANY authenticated role. Change {{token}} to the role you want to test.\nTests: Get profile, update profile (with role-specific meta), deactivate.",
+            "item": [
+                {
+                    "name": "10.1 Get My Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/users/me",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "users",
+                                "me"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "10.2 Update Profile (General)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"name\": \"Updated Name\",\n    \"phone\": \"+92 321 9876543\",\n    \"address\": \"Islamabad, Pakistan\",\n    \"avatar\": \"https://example.com/avatar.jpg\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/users/updateMe",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "users",
+                                "updateMe"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "10.3 Update Profile (Student Meta)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{studentToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"studentMeta\": {\n        \"cgpa\": 3.95,\n        \"department\": \"CS\",\n        \"universityId\": \"2021-CS-582\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/users/updateMe",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "users",
+                                "updateMe"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "10.4 Update Profile (Industry Meta)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{industryToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"industryMeta\": {\n        \"companyName\": \"TechFlow Solutions Updated\",\n        \"website\": \"https://techflow.io\",\n        \"companyAddress\": \"Dubai Silicon Oasis, UAE\",\n        \"registrationNumber\": \"DSO-2024-8891\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/users/updateMe",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "users",
+                                "updateMe"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "10.5 Update Profile (Supervisor Meta)",
+                    "request": {
+                        "method": "PATCH",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{supervisorToken}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"supervisorMeta\": {\n        \"department\": \"CS\",\n        \"specialization\": \"Machine Learning, AI Ethics\",\n        \"universityId\": \"FAC-2020-045\"\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{baseUrl}}/users/updateMe",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "users",
+                                "updateMe"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "10.6 Deactivate My Account ⚠️",
+                    "request": {
+                        "method": "DELETE",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{token}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{baseUrl}}/users/deleteMe",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "users",
+                                "deleteMe"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "11. 💚 Health Check",
+            "item": [
+                {
+                    "name": "11.1 API Health Check",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{baseUrl}}/health",
+                            "host": [
+                                "{{baseUrl}}"
+                            ],
+                            "path": [
+                                "health"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
