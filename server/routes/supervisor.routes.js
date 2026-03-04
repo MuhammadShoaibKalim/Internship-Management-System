@@ -5,7 +5,9 @@ import {
     reviewLog,
     scheduleVisit,
     getVisits,
-    submitMarking
+    submitMarking,
+    getPendingApplications,
+    endorseApplication
 } from '../controllers/supervisor.controller.js';
 import { protect, restrictTo } from '../middleware/auth.middleware.js';
 
@@ -19,6 +21,8 @@ router.get('/students', getAssignedStudents);
 router.patch('/logs/:id', reviewLog);
 router.post('/visits', scheduleVisit);
 router.get('/visits', getVisits);
+router.get('/pending-applications', getPendingApplications);
+router.patch('/applications/:id/endorse', endorseApplication);
 router.post('/marking', submitMarking);
 
 export default router;
