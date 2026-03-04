@@ -101,3 +101,32 @@ export const uploadDocumentFile = multer({
     fileFilter: documentFilter,
     limits: { fileSize: 5 * 1024 * 1024 } // 5 MB max
 }).single('document');
+
+// ─── Avatar / Profile Photo Storage ───────────────────────────────────────────
+const avatarStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../public/uploads/avatars');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        const uniqueName = `avatar-${req.user.id}-${Date.now()}${ext}`;
+        cb(null, uniqueName);
+    }
+});
+
+const avatarFilter = (req, file, cb) => {
+    // Only allow images
+    if (file.mimetype.startsWith('image')) {
+        cb(null, true);
+    } else {
+        cb(new AppError('Only image files are allowed for profile photos', 400), false);
+    }
+};
+
+export const uploadAvatarFile = multer({
+    storage: avatarStorage,
+    fileFilter: avatarFilter,
+    limits: { fileSize: 2 * 1024 * 1024 } // 2 MB max for avatars
+}).single('avatar');
