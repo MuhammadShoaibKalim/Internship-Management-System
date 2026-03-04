@@ -25,7 +25,8 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// 1) GLOBAL MIDDLEWARES
+
+app.set('etag', false); 
 app.use(requestLogger);
 app.use(helmet({
     crossOriginResourcePolicy: false,
@@ -45,12 +46,19 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 app.use(compression());
 
-// Serve uploaded files — override helmet's CORP header so frontend (port 5173)
-// can load images/PDFs served from this API server (port 4000)
+
 app.use('/uploads', (req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
     next();
 }, express.static(path.join(__dirname, 'public/uploads')));
+
+app.use('/api', (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    next();
+});
 
 //routes
 app.use('/api/auth', authRoutes);
