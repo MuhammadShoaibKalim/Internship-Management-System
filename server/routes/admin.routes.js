@@ -39,7 +39,7 @@ router.get('/reports', restrictPermission('read_only'), getGlobalReports);
 router.get('/settings', restrictPermission('read_only'), getSystemSettings);
 router.patch('/settings', restrictPermission('all'), updateSystemSetting);
 
-// Departments
+router.get('/departments/stats', restrictPermission('read_only', 'manage_departments'), getDepartmentStats);
 router.route('/departments')
     .get(restrictPermission('read_only', 'manage_departments'), getAllDepartments)
     .post(restrictPermission('manage_departments'), createDepartment);
