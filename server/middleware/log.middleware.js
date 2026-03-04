@@ -13,6 +13,8 @@ const requestLogger = (req, res, next) => {
             logger.error(`[CRITICAL] ${method} ${originalUrl} ${statusCode} - ${duration}ms`);
         } else if (statusCode >= 400) {
             logger.warn(`[CLIENT ERROR] ${method} ${originalUrl} ${statusCode} - ${duration}ms`);
+        } else if (statusCode === 304) {
+            logger.success(`[CLEAN-CACHE] ${method} ${originalUrl} ${statusCode} - ${duration}ms`);
         } else if (statusCode >= 300) {
             logger.info(`[REDIRECT] ${method} ${originalUrl} ${statusCode} - ${duration}ms`);
         } else {
