@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { logout } from '../../services/api';
 import {
     LayoutDashboard,
     Globe,
@@ -62,6 +63,7 @@ const Sidebar = ({ role = 'student', isOpen = true }) => {
         ],
         admin: [
             { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard/admin" },
+            { icon: UserCircle, label: "My Profile", path: "/dashboard/admin/profile" },
             { icon: ShieldCheck, label: "User Management", path: "/dashboard/admin/users" },
             { icon: Building2, label: "Verify Industry", path: "/dashboard/admin/industry" },
             { icon: GraduationCap, label: "Departments", path: "/dashboard/admin/departments" },
@@ -114,7 +116,10 @@ const Sidebar = ({ role = 'student', isOpen = true }) => {
             </nav>
 
             <div className={`p-4 mt-auto border-t border-slate-50 ${!isOpen && 'flex flex-col items-center'}`}>
-                <button className={`w-full flex items-center gap-2 text-rose-500 font-bold text-sm py-3 hover:bg-rose-50 rounded-xl transition-colors ${!isOpen ? 'justify-center' : 'px-4'}`}>
+                <button
+                    onClick={logout}
+                    className={`w-full flex items-center gap-2 text-rose-500 font-bold text-sm py-3 hover:bg-rose-50 rounded-xl transition-colors ${!isOpen ? 'justify-center' : 'px-4'}`}
+                >
                     <LogOut size={20} className="shrink-0" />
                     {isOpen && <span className="animate-fade-in">Logout</span>}
                 </button>

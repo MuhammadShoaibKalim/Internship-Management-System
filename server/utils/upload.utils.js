@@ -1,12 +1,16 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 import AppError from './appError.utils.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ─── Certificate Storage ──────────────────────────────────────────────────────
 const certificateStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dir = 'public/uploads/certificates';
+        const dir = path.join(__dirname, '../public/uploads/certificates');
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         cb(null, dir);
     },
@@ -35,7 +39,7 @@ export const uploadCertificateFile = multer({
 // ─── CV Storage ───────────────────────────────────────────────────────────────
 const cvStorage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const dir = 'public/uploads/cvs';
+        const dir = path.join(__dirname, '../public/uploads/cvs');
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         cb(null, dir);
     },
@@ -60,3 +64,40 @@ export const uploadCVFile = multer({
     fileFilter: cvFilter,
     limits: { fileSize: 5 * 1024 * 1024 } // 5 MB max
 }).single('cv');
+
+// ─── Generic Document Storage ──────────────────────────────────────────────────
+const documentStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../public/uploads/documents');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        const uniqueName = `doc-${req.user.id}-${Date.now()}${ext}`;
+        cb(null, uniqueName);
+    }
+});
+
+const documentFilter = (req, file, cb) => {
+    // Allow PDFs, images, and standard office docs
+    const allowed = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'image/jpg',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+    if (allowed.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new AppError('Only PDFs, images, and Word docs are allowed', 400), false);
+    }
+};
+
+export const uploadDocumentFile = multer({
+    storage: documentStorage,
+    fileFilter: documentFilter,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5 MB max
+}).single('document');

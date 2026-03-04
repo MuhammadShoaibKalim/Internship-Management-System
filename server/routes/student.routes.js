@@ -8,10 +8,12 @@ import {
     toggleBookmark,
     uploadCertificate,
     getCertificateDetails,
-    deleteCertificate
+    deleteCertificate,
+    uploadDocument,
+    deleteDocument
 } from '../controllers/student.controller.js';
 import { protect, restrictTo } from '../middleware/auth.middleware.js';
-import { uploadCertificateFile, uploadCVFile } from '../utils/upload.utils.js';
+import { uploadCertificateFile, uploadCVFile, uploadDocumentFile } from '../utils/upload.utils.js';
 
 const router = express.Router();
 
@@ -25,12 +27,16 @@ router.patch('/update-profile', updateMyProfile);
 router.post('/toggle-bookmark/:id', toggleBookmark);
 
 // ─── CV ───────────────────────────────────────────────────────────────────────
-router.post('/upload-cv', uploadCV);
+router.post('/upload-cv', uploadCVFile, uploadCV);
 
 // ─── Certificates ─────────────────────────────────────────────────────────────
 router.get('/certificates', getMyCertificates);
 router.get('/certificates/:applicationId', getCertificateDetails);
 router.post('/certificates/:applicationId/upload', uploadCertificateFile, uploadCertificate);
 router.delete('/certificates/:applicationId', deleteCertificate);
+
+// ─── Generic Documents ────────────────────────────────────────────────────────
+router.post('/upload-document', uploadDocumentFile, uploadDocument);
+router.delete('/documents/:documentId', deleteDocument);
 
 export default router;

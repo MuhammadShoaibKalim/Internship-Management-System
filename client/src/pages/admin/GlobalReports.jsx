@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     BarChart3,
     PieChart,
@@ -11,10 +11,51 @@ import {
     Zap,
     Users,
     Building2,
-    ShieldCheck
+    ShieldCheck,
+    Loader2
 } from 'lucide-react';
+import API from '../../services/api';
 
 const GlobalReports = () => {
+    const [data, setData] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        const fetchReports = async () => {
+            try {
+                const response = await API.get('/admin/reports');
+                setData(response.data.data);
+            } catch (err) {
+                setError('Failed to fetch global reports');
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchReports();
+    }, []);
+
+    if (loading) {
+        return (
+            <div className="min-h-[600px] flex flex-col items-center justify-center space-y-4 animate-pulse">
+                <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
+                <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Processing Global Analytics...</p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-12 text-center bg-rose-50 rounded-[3rem] border-2 border-rose-100">
+                <h3 className="text-2xl font-black text-rose-900 uppercase italic">Analytical Bridge Severed</h3>
+                <p className="text-rose-500 font-medium mt-2">{error}</p>
+            </div>
+        );
+    }
+
+    const { funnel, topRecruiters, marketShare } = data;
+
     return (
         <div className="space-y-10 animate-fade-in pb-12">
             {/* Clean Premium Header */}
@@ -53,10 +94,10 @@ const GlobalReports = () => {
                             </h3>
                             <div className="mt-12 space-y-10">
                                 {[
-                                    { label: 'Total Applications', count: '1,240', width: 'w-full', alpha: 'bg-white/10' },
-                                    { label: 'Initial Vetting', count: '852', width: 'w-[80%]', alpha: 'bg-white/20' },
-                                    { label: 'Shortlisted Nodes', count: '320', width: 'w-[45%]', alpha: 'bg-emerald-500/40' },
-                                    { label: 'Signed MoUs', count: '124', width: 'w-[20%]', alpha: 'bg-emerald-500' },
+                                    { label: 'Total Applications', count: funnel.totalApplications, width: 'w-full', alpha: 'bg-white/10' },
+                                    { label: 'Initial Vetting', count: funnel.vetted, width: `w-[${(funnel.vetted / funnel.totalApplications * 100).toFixed(0)}%]`, alpha: 'bg-white/20' },
+                                    { label: 'Shortlisted Nodes', count: funnel.shortlisted, width: `w-[${(funnel.shortlisted / funnel.totalApplications * 100).toFixed(0)}%]`, alpha: 'bg-emerald-500/40' },
+                                    { label: 'Signed MoUs', count: funnel.signedMoUs, width: `w-[${(funnel.signedMoUs / funnel.totalApplications * 100).toFixed(0)}%]`, alpha: 'bg-emerald-500' },
                                 ].map((step, i) => (
                                     <div key={i} className="group/step cursor-pointer">
                                         <div className="flex justify-between items-end mb-4">
@@ -77,15 +118,15 @@ const GlobalReports = () => {
                         <div className="portal-card p-8 bg-white border-2 border-slate-50 flex flex-col justify-between">
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-10 pb-4 border-b border-slate-50">Top Recruiter Nodes</h4>
                             <div className="space-y-6">
-                                {[1, 2, 3].map(i => (
-                                    <div key={i} className="flex items-center justify-between group">
+                                {topRecruiters.map((recruiter, i) => (
+                                    <div key={recruiter._id} className="flex items-center justify-between group">
                                         <div className="flex items-center gap-4">
                                             <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-emerald-600 transition-colors">
-                                                {i}
+                                                {i + 1}
                                             </div>
-                                            <span className="text-xs font-bold text-slate-900 uppercase">TechFlow {i}</span>
+                                            <span className="text-xs font-bold text-slate-900 uppercase">{recruiter.name}</span>
                                         </div>
-                                        <span className="text-[10px] font-black text-emerald-600 italic">42 Placements</span>
+                                        <span className="text-[10px] font-black text-emerald-600 italic">{recruiter.count} Placements</span>
                                     </div>
                                 ))}
                             </div>
@@ -102,13 +143,17 @@ const GlobalReports = () => {
                                 </div>
                             </div>
                             <div className="relative z-10 mt-10 space-y-3">
-                                <div className="flex justify-between text-[10px] font-bold">
-                                    <span className="text-emerald-600">Engineering [65%]</span>
-                                    <span className="text-indigo-600">Business [35%]</span>
-                                </div>
-                                <div className="h-1 bg-slate-50 rounded-full flex overflow-hidden">
-                                    <div className="h-full bg-emerald-500 w-[65%]" />
-                                    <div className="h-full bg-indigo-500 w-[35%]" />
+                                <div className="flex flex-col gap-4">
+                                    {marketShare.map((share, i) => (
+                                        <div key={i} className="space-y-2">
+                                            <div className="flex justify-between text-[10px] font-bold">
+                                                <span className={i === 0 ? 'text-emerald-600' : 'text-indigo-600'}>{share.department} [{share.percentage}%]</span>
+                                            </div>
+                                            <div className="h-1 bg-slate-50 rounded-full flex overflow-hidden">
+                                                <div className={`h-full ${i === 0 ? 'bg-emerald-500' : 'bg-indigo-500'} w-[${share.percentage}%]`} />
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Github, Chrome, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Github, Chrome, Eye, EyeOff, Loader2 } from 'lucide-react';
+import API from '../../services/api';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -8,11 +9,31 @@ const Login = () => {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Simulate Login
-        console.log('Logging in with:', email, password);
-        navigate('/');
+        setLoading(true);
+        setError('');
+
+        try {
+            const response = await API.post('/auth/login', { email, password });
+
+            if (response.data.status === 'success') {
+                const { token, data } = response.data;
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+
+                // Redirect based on role
+                const role = data.user.role;
+                navigate(`/dashboard/${role}`);
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || 'Invalid email or password');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -30,6 +51,11 @@ const Login = () => {
                 </div>
 
                 <div className="portal-card p-8 sm:p-10">
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm font-medium rounded-xl animate-shake">
+                            {error}
+                        </div>
+                    )}
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label className="block text-sm font-bold text-secondary-800 mb-2">Email Address</label>
@@ -80,29 +106,22 @@ const Login = () => {
                             <label htmlFor="remember" className="ml-2 text-sm text-slate-500 font-medium cursor-pointer">Remember me</label>
                         </div>
 
-                        <button type="submit" className="w-full py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 flex items-center justify-center gap-2 group active:scale-95">
-                            Sign In
-                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-3 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 flex items-center justify-center gap-2 group active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {loading ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                                <>
+                                    Sign In
+                                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
                         </button>
                     </form>
 
-                    <div className="relative my-8 text-center">
-                        <div className="absolute inset-0 flex items-center">
-                            <span className="w-full border-t border-slate-100"></span>
-                        </div>
-                        <span className="relative px-4 bg-white text-xs font-bold text-slate-400 uppercase tracking-widest">Or continue with</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <button className="flex items-center justify-center gap-2 py-2.5 border border-slate-100 rounded-xl text-sm font-semibold text-secondary-800 hover:bg-slate-50 transition-colors">
-                            <Chrome size={18} className="text-danger" />
-                            Google
-                        </button>
-                        <button className="flex items-center justify-center gap-2 py-2.5 border border-slate-100 rounded-xl text-sm font-semibold text-secondary-800 hover:bg-slate-50 transition-colors">
-                            <Github size={18} />
-                            GitHub
-                        </button>
-                    </div>
                 </div>
 
                 <p className="text-center mt-8 text-sm text-slate-500 font-medium">

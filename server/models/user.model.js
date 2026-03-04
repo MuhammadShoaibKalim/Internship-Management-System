@@ -17,6 +17,12 @@ const userSchema = new mongoose.Schema({
         lowercase: true,
         validate: [validator.isEmail, 'Please provide a valid email']
     },
+    secondaryEmails: [
+        {
+            type: String,
+            validate: [validator.isEmail, 'Please provide a valid email']
+        }
+    ],
     phone: {
         type: String,
         trim: true
@@ -65,6 +71,13 @@ const userSchema = new mongoose.Schema({
     otpExpires: Date,
     // Student Specific Assets
     cvUrl: String,
+    documents: [
+        {
+            name: String,
+            url: String,
+            uploadedAt: { type: Date, default: Date.now }
+        }
+    ],
     bookmarks: [
         {
             type: mongoose.Schema.ObjectId,
@@ -112,9 +125,16 @@ const userSchema = new mongoose.Schema({
         ]
     },
     supervisorMeta: {
-        universityId: { type: String, unique: true, sparse: true },
         department: String,
         specialization: String
+    },
+    adminMeta: {
+        permissions: [
+            {
+                type: String,
+                enum: ['all', 'approve_only', 'read_only', 'manage_users', 'manage_departments']
+            }
+        ]
     },
     avatar: {
         type: String,

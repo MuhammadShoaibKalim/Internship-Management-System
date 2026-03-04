@@ -4,8 +4,8 @@ import AppError from '../utils/appError.utils.js';
 
 // 1. Get All Internships (For Internship Hub)
 export const getAllInternships = catchAsync(async (req, res, next) => {
-    // Filter by 'open' status by default
-    const filter = { status: 'open' };
+    // Include 'draft' for now to ensure visibility of existing data
+    const filter = { status: { $in: ['open', 'draft'] } };
 
     // Add search/category/type filters if needed from query params
     if (req.query.category) filter.category = req.query.category;

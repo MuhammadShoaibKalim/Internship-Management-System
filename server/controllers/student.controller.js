@@ -39,9 +39,18 @@ export const getMyProfile = catchAsync(async (req, res, next) => {
         return next(new AppError('Student not found', 404));
     }
 
+    const studentObj = student.toObject();
+    if (studentObj.cvUrl) {
+        studentObj.cv = {
+            url: studentObj.cvUrl,
+            name: 'Student_CV.pdf',
+            updatedAt: studentObj.updatedAt
+        };
+    }
+
     res.status(200).json({
         status: 'success',
-        data: { student }
+        data: { student: studentObj }
     });
 });
 
@@ -70,7 +79,7 @@ export const getMyCertificates = catchAsync(async (req, res, next) => {
     const completedApps = await Application.find({
         student: req.user.id,
         status: 'completed'
-    }).populate('internship').select('+certificate');
+    }).populate('internship');
 
     res.status(200).json({
         status: 'success',
@@ -182,22 +191,30 @@ export const deleteCertificate = catchAsync(async (req, res, next) => {
     });
 });
 
-// 5. Upload/Update CV
+// 5. Upload CV (Requires uploadCVFile middleware in routes)
 export const uploadCV = catchAsync(async (req, res, next) => {
-    if (!req.body.cvUrl) {
-        return next(new AppError('Please provide a CV URL', 400));
+    if (!req.file) {
+        return next(new AppError('Please upload a CV file (PDF)', 400));
     }
 
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/cvs/${req.file.filename}`;
+
     const user = await User.findByIdAndUpdate(req.user.id, {
-        cvUrl: req.body.cvUrl
+        cvUrl: fileUrl
     }, {
         new: true,
-        runValidators: true
+        runValidators: false
     });
 
     res.status(200).json({
         status: 'success',
-        data: { user }
+        data: {
+            cv: {
+                url: fileUrl,
+                name: req.file.originalname,
+                updatedAt: new Date()
+            }
+        }
     });
 });
 
@@ -222,5 +239,55 @@ export const toggleBookmark = catchAsync(async (req, res, next) => {
         status: 'success',
         message: isBookmarked ? 'Bookmark removed' : 'Bookmark added',
         data: { bookmarks: user.bookmarks }
+    });
+});
+
+// 7. Upload Generic Document (Requires uploadDocumentFile middleware in routes)
+export const uploadDocument = catchAsync(async (req, res, next) => {
+    if (!req.file) {
+        return next(new AppError('Please upload a document file (PDF, Image, or Word Doc)', 400));
+    }
+
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/documents/${req.file.filename}`;
+    const newDoc = {
+        name: req.file.originalname,
+        url: fileUrl,
+        uploadedAt: new Date()
+    };
+
+    const user = await User.findByIdAndUpdate(req.user.id, {
+        $push: { documents: newDoc }
+    }, {
+        new: true,
+        runValidators: false
+    });
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Document uploaded successfully',
+        data: {
+            document: user.documents[user.documents.length - 1]
+        }
+    });
+});
+
+// 8. Delete Generic Document
+export const deleteDocument = catchAsync(async (req, res, next) => {
+    const { documentId } = req.params;
+
+    const user = await User.findByIdAndUpdate(req.user.id, {
+        $pull: { documents: { _id: documentId } }
+    }, {
+        new: true,
+        runValidators: false
+    });
+
+    if (!user) {
+        return next(new AppError('User not found or document deletion failed', 404));
+    }
+
+    res.status(200).json({
+        status: 'success',
+        message: 'Document removed successfully'
     });
 });

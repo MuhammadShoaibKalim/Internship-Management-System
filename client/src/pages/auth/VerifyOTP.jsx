@@ -1,11 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, ArrowRight, RefreshCw } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { ShieldCheck, ArrowRight, RefreshCw, Loader2 } from 'lucide-react';
+import API from '../../services/api';
 
 const VerifyOTP = () => {
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const inputs = useRef([]);
     const navigate = useNavigate();
+    const location = useLocation();
+    const email = location.state?.email;
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!email) {
+            navigate('/auth/register');
+        }
+    }, [email, navigate]);
 
     const handleChange = (element, index) => {
         if (isNaN(element.value)) return false;
@@ -18,17 +29,51 @@ const VerifyOTP = () => {
         }
     };
 
+    const handlePaste = (e) => {
+        const data = e.clipboardData.getData('text');
+        if (!data || data.length !== 6 || isNaN(data)) return;
+
+        const otpArray = data.split('');
+        setOtp(otpArray);
+
+        // Focus the last input
+        inputs.current[5].focus();
+    };
+
     const handleKeyDown = (e, index) => {
         if (e.key === 'Backspace' && index > 0 && otp[index] === '') {
             inputs.current[index - 1].focus();
         }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Verifying OTP:', otp.join(''));
-        // Redirect to success or dashboard
-        navigate('/');
+        const otpCode = otp.join('');
+        if (otpCode.length < 6) return;
+
+        setLoading(true);
+        setError('');
+
+        try {
+            const response = await API.post('/auth/verifyOTP', {
+                email,
+                otp: otpCode
+            });
+
+            if (response.data.status === 'success') {
+                const { token, data } = response.data;
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+
+                // Redirect based on role
+                const role = data.user.role;
+                navigate(`/dashboard/${role}`);
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || 'Invalid or expired OTP');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -40,10 +85,15 @@ const VerifyOTP = () => {
 
                 <h1 className="text-3xl font-extrabold text-secondary-900 tracking-tight">Verify Account</h1>
                 <p className="text-slate-500 mt-3 font-medium px-4">
-                    We've sent a 6-digit verification code to your email. Enter it below to secure your account.
+                    We've sent a 6-digit verification code to <span className="font-bold text-secondary-900">{email}</span>. Enter it below to secure your account.
                 </p>
 
                 <div className="portal-card p-8 sm:p-10 text-left mt-10">
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm font-medium rounded-xl animate-shake">
+                            {error}
+                        </div>
+                    )}
                     <form onSubmit={handleSubmit} className="space-y-8">
                         <div className="flex justify-between gap-2">
                             {otp.map((data, index) => (
@@ -56,13 +106,24 @@ const VerifyOTP = () => {
                                     value={data}
                                     onChange={(e) => handleChange(e.target, index)}
                                     onKeyDown={(e) => handleKeyDown(e, index)}
+                                    onPaste={handlePaste}
                                 />
                             ))}
                         </div>
 
-                        <button type="submit" className="w-full py-3.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 flex items-center justify-center gap-2 group active:scale-95">
-                            Verify & Proceed
-                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        <button
+                            type="submit"
+                            disabled={loading || otp.join('').length < 6}
+                            className="w-full py-3.5 bg-primary-600 text-white rounded-xl font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-200 flex items-center justify-center gap-2 group active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {loading ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                                <>
+                                    Verify & Proceed
+                                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
                         </button>
                     </form>
 

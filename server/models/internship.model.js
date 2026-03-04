@@ -42,7 +42,7 @@ const internshipSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: ['draft', 'open', 'closed'],
-        default: 'draft'
+        default: 'open'
     },
     category: {
         type: String,

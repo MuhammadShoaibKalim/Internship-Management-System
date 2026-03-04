@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Settings,
     Shield,
@@ -12,18 +12,54 @@ import {
     Server,
     Activity,
     Cpu,
-    Sparkles
+    Sparkles,
+    Loader2
 } from 'lucide-react';
+import API from '../../services/api';
 
 const AdminSettings = () => {
+    const [settings, setSettings] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('security');
+    const [saving, setSaving] = useState(false);
 
     const tabs = [
         { id: 'security', label: 'Security Protocols', icon: Shield },
-        { id: 'platform', label: 'Node Config', icon: Settings },
+        { id: 'platform', label: 'Platform Config', icon: Settings },
         { id: 'notifications', label: 'Sync Alerts', icon: Bell },
         { id: 'infrastructure', label: 'Global Health', icon: Globe },
     ];
+
+    useEffect(() => {
+        fetchSettings();
+    }, []);
+
+    const fetchSettings = async () => {
+        setLoading(true);
+        try {
+            const response = await API.get('/admin/settings');
+            setSettings(response.data.data.settings);
+        } catch (err) {
+            console.error('Failed to fetch system settings', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleToggle = async (key, currentValue) => {
+        setSaving(true);
+        try {
+            const newValue = !currentValue;
+            await API.patch('/admin/settings', { key, value: newValue });
+            setSettings(settings.map(s => s.key === key ? { ...s, value: newValue } : s));
+        } catch (err) {
+            alert('Failed to update system protocol');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const filteredSettings = settings.filter(s => s.category === activeTab);
 
     return (
         <div className="space-y-10 animate-fade-in pb-12">
@@ -44,8 +80,8 @@ const AdminSettings = () => {
                     </div>
                 </div>
                 <div className="flex gap-4">
-                    <button className="px-10 py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-slate-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3">
-                        <Save size={20} className="text-primary-400" /> Push Changes
+                    <button onClick={fetchSettings} className="px-10 py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-slate-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3">
+                        <RefreshCw size={20} className={`text-primary-400 ${loading ? 'animate-spin' : ''}`} /> Sync State
                     </button>
                 </div>
             </div>
@@ -86,21 +122,36 @@ const AdminSettings = () => {
 
                         {/* Setting Sections */}
                         <div className="space-y-12 flex-1">
-                            {[1, 2, 3].map(i => (
-                                <div key={i} className="flex flex-col md:flex-row md:items-center justify-between gap-10 group bg-slate-50/50 p-8 rounded-3xl border border-transparent hover:border-slate-100 hover:bg-white hover:shadow-xl transition-all">
-                                    <div className="space-y-2">
-                                        <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">Protocol Instance 0{i}</h4>
-                                        <p className="text-xs text-slate-400 font-medium italic opacity-70 leading-relaxed max-w-md">
-                                            Define the behavioral threshold for institutional sync operations. Affects node latency and data consistency.
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-16 h-8 bg-slate-200 rounded-full relative p-1 cursor-pointer hover:bg-slate-300 transition-all">
-                                            <div className="w-6 h-6 bg-white rounded-full shadow-lg translate-x-8" />
+                            {loading ? (
+                                <div className="flex flex-col items-center justify-center py-20">
+                                    <Loader2 className="w-10 h-10 text-slate-400 animate-spin" />
+                                </div>
+                            ) : filteredSettings.length > 0 ? (
+                                filteredSettings.map((setting) => (
+                                    <div key={setting.key} className="flex flex-col md:flex-row md:items-center justify-between gap-10 group bg-slate-50/50 p-8 rounded-3xl border border-transparent hover:border-slate-100 hover:bg-white hover:shadow-xl transition-all">
+                                        <div className="space-y-2">
+                                            <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">{setting.label || setting.key}</h4>
+                                            <p className="text-xs text-slate-400 font-medium italic opacity-70 leading-relaxed max-w-md">
+                                                {setting.description || 'Define behavioral threshold for system operations.'}
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-6">
+                                            <button
+                                                disabled={saving}
+                                                onClick={() => handleToggle(setting.key, setting.value)}
+                                                className={`w-16 h-8 rounded-full relative p-1 transition-all ${setting.value ? 'bg-primary-500' : 'bg-slate-200'}`}
+                                            >
+                                                <div className={`w-6 h-6 bg-white rounded-full shadow-lg transition-transform ${setting.value ? 'translate-x-8' : 'translate-x-0'}`} />
+                                            </button>
                                         </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-20 text-slate-300">
+                                    <Shield size={48} strokeWidth={1} />
+                                    <p className="mt-4 text-[10px] font-black uppercase tracking-widest">No active protocols in this layer</p>
                                 </div>
-                            ))}
+                            )}
                         </div>
 
                         {/* Node Telemetry Section */}

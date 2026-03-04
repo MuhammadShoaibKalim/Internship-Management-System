@@ -3,8 +3,10 @@ import Application from '../models/application.model.js';
 import Internship from '../models/internship.model.js';
 import Department from '../models/department.model.js';
 import SystemConfig from '../models/systemConfig.model.js';
+import Notification from '../models/notification.model.js';
 import catchAsync from '../utils/catchAsync.utils.js';
 import AppError from '../utils/appError.utils.js';
+import { createNotification } from '../utils/notification.utils.js';
 
 // 1. Get Admin Dashboard Stats
 export const getAdminStats = catchAsync(async (req, res, next) => {
@@ -30,12 +32,17 @@ export const getAdminStats = catchAsync(async (req, res, next) => {
         networkLatency: '12ms'
     };
 
-    // Security Feed (Mocked for UI alignment)
-    const securityFeed = [
-        { id: '0x1B', type: 'AUTH LOG', message: 'Access denied at secondary node sync...', timestamp: new Date() },
-        { id: '0x2C', type: 'SECURITY', message: 'Brute force attempt blocked from 192.168.1.1', timestamp: new Date() },
-        { id: '0x3D', type: 'SYSTEM', message: 'Root level config changed by Admin', timestamp: new Date() }
-    ];
+    // Security Feed (Real data from Notification collection)
+    const notifications = await Notification.find({ recipient: 'admin', status: 'active' })
+        .sort('-createdAt')
+        .limit(10);
+
+    const securityFeed = notifications.map(n => ({
+        id: n._id,
+        type: n.type,
+        message: n.message,
+        timestamp: n.createdAt
+    }));
 
     res.status(200).json({
         status: 'success',
@@ -89,6 +96,34 @@ export const updateUserStatus = catchAsync(async (req, res, next) => {
         status: 'success',
         data: { user }
     });
+
+    // Notification for admin
+    await createNotification({
+        type: 'SYSTEM_ALERT',
+        message: `Identity status synchronized: ${user.name} established as ${user.status}`,
+        relatedUser: user._id,
+        priority: 'low'
+    });
+});
+
+// 3b. User Management: Delete User
+export const deleteUser = catchAsync(async (req, res, next) => {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+        return next(new AppError('No user found with that ID', 404));
+    }
+
+    if (user.role === 'admin') {
+        return next(new AppError('Security Protocol Error: Administrative accounts cannot be purged through this interface.', 403));
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    res.status(204).json({
+        status: 'success',
+        data: null
+    });
 });
 
 // 4. Industry Verification: Approve/Reject Industry
@@ -113,6 +148,14 @@ export const verifyIndustry = catchAsync(async (req, res, next) => {
         status: 'success',
         message: `Industry account has been ${status}`,
         data: { user }
+    });
+
+    // System Notification
+    await createNotification({
+        type: 'INDUSTRY_VERIFICATION',
+        message: `Industry node ${status}: ${user.name} verification finalized`,
+        relatedUser: user._id,
+        priority: status === 'active' ? 'medium' : 'high'
     });
 });
 
@@ -289,5 +332,99 @@ export const deleteDepartment = catchAsync(async (req, res, next) => {
     res.status(204).json({
         status: 'success',
         data: null
+    });
+});
+
+// 9. Create Sub-Admin with Restrictions
+export const createSubAdmin = catchAsync(async (req, res, next) => {
+    const { name, email, password, passwordConfirm, permissions } = req.body;
+
+    const newAdmin = await User.create({
+        name,
+        email,
+        password,
+        passwordConfirm,
+        role: 'admin',
+        status: 'active', // Immediate activation by superior
+        isEmailVerified: true,
+        adminMeta: {
+            permissions: permissions || ['read_only']
+        }
+    });
+
+    res.status(201).json({
+        status: 'success',
+        data: {
+            user: newAdmin
+        }
+    });
+});
+
+// 10. Global Search (Admin Hub)
+export const globalSearch = catchAsync(async (req, res, next) => {
+    const { query } = req.query;
+
+    if (!query) {
+        return res.status(200).json({
+            status: 'success',
+            data: { results: [] }
+        });
+    }
+
+    const regex = new RegExp(query, 'i');
+
+    const [users, internships, departments] = await Promise.all([
+        User.find({
+            $or: [
+                { name: regex },
+                { email: regex },
+                { 'industryMeta.companyName': regex }
+            ]
+        }).select('name email role status industryMeta.companyName').limit(5),
+
+        Internship.find({
+            $or: [
+                { title: regex },
+                { companyName: regex }
+            ]
+        }).select('title companyName status').limit(5),
+
+        Department.find({
+            $or: [
+                { name: regex },
+                { code: regex }
+            ]
+        }).select('name code').limit(5)
+    ]);
+
+    // Format results for frontend consumption
+    const results = [
+        ...users.map(u => ({
+            id: u._id,
+            title: u.name,
+            subtitle: u.role === 'industry' ? u.industryMeta?.companyName : u.email,
+            type: 'USER',
+            role: u.role,
+            status: u.status
+        })),
+        ...internships.map(i => ({
+            id: i._id,
+            title: i.title,
+            subtitle: i.companyName,
+            type: 'INTERNSHIP',
+            status: i.status
+        })),
+        ...departments.map(d => ({
+            id: d._id,
+            title: d.name,
+            subtitle: d.code,
+            type: 'DEPARTMENT'
+        }))
+    ];
+
+    res.status(200).json({
+        status: 'success',
+        results: results.length,
+        data: { results }
     });
 });

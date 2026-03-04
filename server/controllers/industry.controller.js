@@ -40,7 +40,7 @@ export const createInternship = catchAsync(async (req, res, next) => {
     const internship = await Internship.create({
         ...req.body,
         industry: req.user.id,
-        companyName: req.user.name // Denormalize company name
+        companyName: req.user.name || 'Anonymous Entity'
     });
 
     res.status(201).json({

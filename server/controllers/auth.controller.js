@@ -6,6 +6,7 @@ import { createSendToken } from '../utils/jwt.utils.js';
 import sendEmail from '../utils/email.utils.js';
 import logger from '../utils/logger.utils.js';
 import { getOTPTemplate, getResetTemplate, getResetOTPTemplate } from '../utils/emailTemplate.utils.js';
+import { createNotification } from '../utils/notification.utils.js';
 
 // 1. REGISTER (STEP 1: Details Submission)
 export const signup = catchAsync(async (req, res, next) => {
@@ -84,6 +85,14 @@ export const verifyOTP = catchAsync(async (req, res, next) => {
     await user.save({ validateBeforeSave: false });
 
     logger.success(`User Verified successfully: ${user.email}`);
+
+    // Create system notification for admin
+    await createNotification({
+        type: 'USER_REGISTRATION',
+        message: `New identity node initialized: ${user.name} (${user.role})`,
+        relatedUser: user._id,
+        priority: 'medium'
+    });
 
     // Login user automatically after verification
     createSendToken(user, 201, res);

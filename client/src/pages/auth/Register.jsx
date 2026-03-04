@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock, Building2, GraduationCap, Users2, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { User, Mail, Lock, Building2, GraduationCap, Users2, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
+import API from '../../services/api';
 
 const Register = () => {
     const [role, setRole] = useState('student');
@@ -16,10 +17,47 @@ const Register = () => {
     });
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log('Registering:', role, formData);
-        navigate('/auth/verify-otp');
+        setLoading(true);
+        setError('');
+
+        try {
+            if (formData.password !== formData.confirmPassword) {
+                throw new Error('Passwords do not match');
+            }
+
+            const payload = {
+                name: formData.name,
+                email: formData.email,
+                password: formData.password,
+                passwordConfirm: formData.confirmPassword,
+                role: role,
+            };
+
+            // Add role-specific meta
+            if (role === 'student') {
+                payload.universityId = formData.organization;
+            } else if (role === 'industry') {
+                payload.companyName = formData.organization;
+            } else if (role === 'supervisor') {
+                payload.universityId = formData.organization;
+            }
+
+            const response = await API.post('/auth/signup', payload);
+
+            if (response.data.status === 'success') {
+                // Redirect to OTP verification with email in state
+                navigate('/auth/verify-otp', { state: { email: formData.email } });
+            }
+        } catch (err) {
+            setError(err.response?.data?.message || err.message || 'Something went wrong');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const roles = [
@@ -50,8 +88,8 @@ const Register = () => {
                                 key={r.id}
                                 onClick={() => setRole(r.id)}
                                 className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all group ${role === r.id
-                                        ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-md'
-                                        : 'border-slate-50 bg-slate-50/50 text-slate-500 hover:border-slate-100 hover:bg-slate-100'
+                                    ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-md'
+                                    : 'border-slate-50 bg-slate-50/50 text-slate-500 hover:border-slate-100 hover:bg-slate-100'
                                     } `}
                             >
                                 <span className={role === r.id ? 'text-primary-600' : 'text-slate-400 group-hover:text-slate-500'}>
@@ -61,6 +99,12 @@ const Register = () => {
                             </button>
                         ))}
                     </div>
+
+                    {error && (
+                        <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm font-medium rounded-xl animate-shake">
+                            {error}
+                        </div>
+                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -162,9 +206,19 @@ const Register = () => {
                             By clicking Sign Up, you agree to our Terms and that you have read our Data Policy.
                         </p>
 
-                        <button type="submit" className="w-full py-3 bg-secondary-900 text-white rounded-xl font-bold hover:bg-secondary-800 transition-all shadow-lg flex items-center justify-center gap-2 group active:scale-95">
-                            Create {role.charAt(0).toUpperCase() + role.slice(1)} Account
-                            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full py-3 bg-secondary-900 text-white rounded-xl font-bold hover:bg-secondary-800 transition-all shadow-lg flex items-center justify-center gap-2 group active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+                        >
+                            {loading ? (
+                                <Loader2 size={18} className="animate-spin" />
+                            ) : (
+                                <>
+                                    Create {role.charAt(0).toUpperCase() + role.slice(1)} Account
+                                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </>
+                            )}
                         </button>
                     </form>
                 </div>

@@ -1,9 +1,41 @@
-import React from 'react';
-import { Plus, Users, Layout, FileText, TrendingUp, ArrowRight, Building2, Globe, Sparkles } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Plus, Users, Layout, FileText, TrendingUp, ArrowRight, Building2, Globe, Sparkles, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatusBadge from '../../components/common/StatusBadge';
+import API from '../../services/api';
 
 const IndustryDashboard = () => {
+    const [stats, setStats] = useState({ activePosts: 0, totalApplicants: 0, onboardingInterns: 0 });
+    const [recentApplicants, setRecentApplicants] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
+
+    const fetchDashboardData = async () => {
+        try {
+            const response = await API.get('/industry/stats');
+            if (response.data.status === 'success') {
+                setStats(response.data.data.stats);
+                setRecentApplicants(response.data.data.recentApplicants);
+            }
+        } catch (err) {
+            console.error('Failed to sync corporate node:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="p-20 flex flex-col items-center justify-center space-y-4">
+                <Loader2 className="w-12 h-12 text-amber-500 animate-spin" />
+                <p className="text-slate-400 font-black uppercase tracking-widest text-xs">Accessing Command Center...</p>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-10 animate-fade-in pb-12">
             {/* Clean Premium Header */}
@@ -22,7 +54,7 @@ const IndustryDashboard = () => {
                         </p>
                     </div>
                 </div>
-                <Link to="/dashboard/industry/manage" className="px-8 py-5 bg-slate-900 text-white rounded-3xl font-bold text-sm shadow-2xl shadow-slate-200 hover:bg-amber-600 active:scale-95 transition-all flex items-center gap-3 no-underline group">
+                <Link to="/dashboard/industry/manage" className="px-8 py-5 bg-slate-900 text-white rounded-3xl font-bold text-sm shadow-2xl shadow-slate-200 hover:bg-amber-600 active:scale-95 transition-all flex items-center gap-3 no-underline group text-center">
                     <Plus size={20} className="text-amber-400 group-hover:rotate-90 transition-transform" />
                     Post New Node
                 </Link>
@@ -31,9 +63,9 @@ const IndustryDashboard = () => {
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
                 {[
-                    { label: 'Active Posts', value: '05', icon: Layout, color: 'primary', path: '/dashboard/industry/manage', accent: 'border-l-primary-500' },
-                    { label: 'Applicants', value: '42', icon: Users, color: 'amber', path: '/dashboard/industry/applicants', accent: 'border-l-amber-500' },
-                    { label: 'Onboarding', value: '12', icon: TrendingUp, color: 'emerald', path: '/dashboard/industry/interns', accent: 'border-l-emerald-500' }
+                    { label: 'Active Posts', value: stats.activePosts, icon: Layout, color: 'primary', path: '/dashboard/industry/manage', accent: 'border-l-primary-500' },
+                    { label: 'Applicants', value: stats.totalApplicants, icon: Users, color: 'amber', path: '/dashboard/industry/applicants', accent: 'border-l-amber-500' },
+                    { label: 'Onboarding', value: stats.onboardingInterns, icon: TrendingUp, color: 'emerald', path: '/dashboard/industry/interns', accent: 'border-l-emerald-500' }
                 ].map((stat, i) => (
                     <Link key={i} to={stat.path} className="portal-card p-10 group hover:border-amber-100 transition-all no-underline bg-white relative overflow-hidden">
                         <div className="flex justify-between items-start mb-8 relative z-10 font-inter">
@@ -63,23 +95,29 @@ const IndustryDashboard = () => {
                         </Link>
                     </div>
                     <div className="space-y-6">
-                        {[1, 2, 3].map(i => (
-                            <Link to="/dashboard/industry/applicants" key={i} className="flex items-center justify-between p-6 bg-slate-50 border-2 border-transparent hover:border-amber-100 hover:bg-white hover:shadow-xl transition-all group cursor-pointer rounded-3xl no-underline">
-                                <div className="flex items-center gap-6">
-                                    <div className="w-14 h-14 bg-slate-900 text-amber-400 rounded-2xl flex items-center justify-center font-black text-lg shadow-xl shadow-slate-200 group-hover:scale-110 transition-transform">
-                                        {String.fromCharCode(64 + i)}
+                        {recentApplicants.length === 0 ? (
+                            <div className="p-12 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-100">
+                                <p className="text-slate-400 font-bold italic uppercase tracking-widest text-[10px]">No active signals detected in pipeline</p>
+                            </div>
+                        ) : (
+                            recentApplicants.map(applicant => (
+                                <Link to="/dashboard/industry/applicants" key={applicant._id} className="flex items-center justify-between p-6 bg-slate-50 border-2 border-transparent hover:border-amber-100 hover:bg-white hover:shadow-xl transition-all group cursor-pointer rounded-3xl no-underline">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-14 h-14 bg-slate-900 text-amber-400 rounded-2xl flex items-center justify-center font-black text-lg shadow-xl shadow-slate-200 group-hover:scale-110 transition-transform uppercase">
+                                            {applicant.student.name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-slate-900 tracking-tight uppercase">{applicant.student.name}</h4>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-60 italic">{applicant.internship.title}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="text-lg font-bold text-slate-900 tracking-tight uppercase">Applicant Node {i}</h4>
-                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1 opacity-60 italic">UI/UX Designer • B.S Computing</p>
+                                    <div className="flex items-center gap-6">
+                                        <StatusBadge status={applicant.status} />
+                                        <ArrowRight size={20} className="text-slate-200 group-hover:text-amber-600 group-hover:translate-x-2 transition-all" />
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-6">
-                                    <StatusBadge status="Pending" />
-                                    <ArrowRight size={20} className="text-slate-200 group-hover:text-amber-600 group-hover:translate-x-2 transition-all" />
-                                </div>
-                            </Link>
-                        ))}
+                                </Link>
+                            ))
+                        )}
                     </div>
                 </div>
 

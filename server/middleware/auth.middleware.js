@@ -48,3 +48,29 @@ export const restrictTo = (...roles) => {
         next();
     };
 };
+// 3. Permission Gate (Restrict To Specific Admin Capabilities)
+export const restrictPermission = (...requiredPermissions) => {
+    return (req, res, next) => {
+        // 1) Allow Super Admins (role admin with 'all' permission or implicit full access if no specific permissions set)
+        if (req.user.role === 'admin') {
+            const userPermissions = req.user.adminMeta?.permissions || [];
+
+            // If they have 'all' or no permissions defined yet (legacy/super-admin), grant access
+            if (userPermissions.includes('all') || userPermissions.length === 0) {
+                return next();
+            }
+
+            // 2) Check if user has at least one of the required permissions
+            const hasPermission = requiredPermissions.some(perm => userPermissions.includes(perm));
+
+            if (!hasPermission) {
+                return next(new AppError('You do not have the required administrative permissions to perform this action', 403));
+            }
+
+            return next();
+        }
+
+        // 3) If not an admin but reached here, something is wrong with route definition
+        return next(new AppError('Permission checking is only applicable for administrative identities', 403));
+    };
+};

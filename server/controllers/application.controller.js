@@ -1,6 +1,7 @@
 import Application from '../models/application.model.js';
 import catchAsync from '../utils/catchAsync.utils.js';
 import AppError from '../utils/appError.utils.js';
+import { createNotification } from '../utils/notification.utils.js';
 
 // 1. Submit Application
 export const applyToInternship = catchAsync(async (req, res, next) => {
@@ -11,6 +12,14 @@ export const applyToInternship = catchAsync(async (req, res, next) => {
         internship: internshipId,
         resume,
         coverLetter
+    });
+
+    // Create Notification for industry/admin
+    await createNotification({
+        type: 'APPLICATION_SUBMISSION',
+        message: `New internship application submitted: Node ${req.user.name} initiated request`,
+        relatedUser: req.user.id,
+        priority: 'low'
     });
 
     res.status(201).json({
