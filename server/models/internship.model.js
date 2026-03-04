@@ -10,6 +10,10 @@ const internshipSchema = new mongoose.Schema({
         type: String,
         required: [true, 'An internship must have a description']
     },
+    tagline: {
+        type: String,
+        trim: true
+    },
     industry: {
         type: mongoose.Schema.ObjectId,
         ref: 'User',
