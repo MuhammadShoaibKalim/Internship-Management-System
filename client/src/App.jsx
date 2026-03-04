@@ -1,5 +1,5 @@
 import React from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import ScrollToTop from './components/common/ScrollToTop';
 import LoadingBar from './components/common/LoadingBar';
 
@@ -14,6 +14,11 @@ import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import VerifyOTP from './pages/auth/VerifyOTP';
 import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+import RoleBasedRedirect from './components/auth/RoleBasedRedirect';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import GuestRoute from './components/auth/GuestRoute';
+import NotFound from './pages/NotFound';
 
 // Dashboard Components
 import StudentDashboard from './pages/dashboard/StudentDashboard';
@@ -42,6 +47,7 @@ import SiteVisits from './pages/supervisor/SiteVisits';
 import FinalMarking from './pages/supervisor/FinalMarking';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
+import AdminProfile from './pages/admin/AdminProfile';
 import VerifyIndustry from './pages/admin/VerifyIndustry';
 import AdminDepartments from './pages/admin/AdminDepartments';
 import GlobalReports from './pages/admin/GlobalReports';
@@ -53,51 +59,91 @@ const App = () => {
       <ScrollToTop />
       <LoadingBar />
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard/student" />} />
+        {/* Root Redirect based on Role */}
+        <Route path="/" element={<RoleBasedRedirect />} />
 
         {/* Student Protected Routes */}
-        <Route path="/dashboard/student" element={<StudentLayout><StudentDashboard /></StudentLayout>} />
-        <Route path="/dashboard/student/hub" element={<StudentLayout><InternshipHub /></StudentLayout>} />
-        <Route path="/dashboard/student/applications" element={<StudentLayout><StudentApplications /></StudentLayout>} />
-        <Route path="/dashboard/student/logs" element={<StudentLayout><StudentLogs /></StudentLayout>} />
-        <Route path="/dashboard/student/certificates" element={<StudentLayout><StudentCertificates /></StudentLayout>} />
-        <Route path="/dashboard/student/cv-builder" element={<StudentLayout><StudentCVBuilder /></StudentLayout>} />
+        <Route path="/dashboard/student/*" element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <StudentLayout>
+              <Routes>
+                <Route index element={<StudentDashboard />} />
+                <Route path="hub" element={<InternshipHub />} />
+                <Route path="applications" element={<StudentApplications />} />
+                <Route path="logs" element={<StudentLogs />} />
+                <Route path="certificates" element={<StudentCertificates />} />
+                <Route path="cv-builder" element={<StudentCVBuilder />} />
+                <Route path="settings" element={<StudentSettings />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
+            </StudentLayout>
+          </ProtectedRoute>
+        } />
 
         {/* Industry Protected Routes */}
-        <Route path="/dashboard/industry" element={<IndustryLayout><IndustryDashboard /></IndustryLayout>} />
-        <Route path="/dashboard/industry/manage" element={<IndustryLayout><ManagePostings /></IndustryLayout>} />
-        <Route path="/dashboard/industry/applicants" element={<IndustryLayout><IndustryApplicants /></IndustryLayout>} />
-        <Route path="/dashboard/industry/interns" element={<IndustryLayout><IndustryInterns /></IndustryLayout>} />
-        <Route path="/dashboard/industry/evaluations" element={<IndustryLayout><IndustryEvaluations /></IndustryLayout>} />
-        <Route path="/dashboard/industry/profile" element={<IndustryLayout><IndustryProfile /></IndustryLayout>} />
+        <Route path="/dashboard/industry/*" element={
+          <ProtectedRoute allowedRoles={['industry']}>
+            <IndustryLayout>
+              <Routes>
+                <Route index element={<IndustryDashboard />} />
+                <Route path="manage" element={<ManagePostings />} />
+                <Route path="applicants" element={<IndustryApplicants />} />
+                <Route path="interns" element={<IndustryInterns />} />
+                <Route path="evaluations" element={<IndustryEvaluations />} />
+                <Route path="profile" element={<IndustryProfile />} />
+                <Route path="settings" element={<IndustrySettings />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
+            </IndustryLayout>
+          </ProtectedRoute>
+        } />
 
         {/* Supervisor Protected Routes */}
-        <Route path="/dashboard/supervisor" element={<SupervisorLayout><SupervisorDashboard /></SupervisorLayout>} />
-        <Route path="/dashboard/supervisor/students" element={<SupervisorLayout><AssignedStudents /></SupervisorLayout>} />
-        <Route path="/dashboard/supervisor/logs" element={<SupervisorLayout><LogReviews /></SupervisorLayout>} />
-        <Route path="/dashboard/supervisor/visits" element={<SupervisorLayout><SiteVisits /></SupervisorLayout>} />
-        <Route path="/dashboard/supervisor/marking" element={<SupervisorLayout><FinalMarking /></SupervisorLayout>} />
+        <Route path="/dashboard/supervisor/*" element={
+          <ProtectedRoute allowedRoles={['supervisor']}>
+            <SupervisorLayout>
+              <Routes>
+                <Route index element={<SupervisorDashboard />} />
+                <Route path="students" element={<AssignedStudents />} />
+                <Route path="logs" element={<LogReviews />} />
+                <Route path="visits" element={<SiteVisits />} />
+                <Route path="marking" element={<FinalMarking />} />
+                <Route path="settings" element={<SupervisorSettings />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
+            </SupervisorLayout>
+          </ProtectedRoute>
+        } />
 
         {/* Admin Protected Routes */}
-        <Route path="/dashboard/admin" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
-        <Route path="/dashboard/admin/users" element={<AdminLayout><UserManagement /></AdminLayout>} />
-        <Route path="/dashboard/admin/industry" element={<AdminLayout><VerifyIndustry /></AdminLayout>} />
-        <Route path="/dashboard/admin/departments" element={<AdminLayout><AdminDepartments /></AdminLayout>} />
-        <Route path="/dashboard/admin/reports" element={<AdminLayout><GlobalReports /></AdminLayout>} />
+        <Route path="/dashboard/admin/*" element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminLayout>
+              <Routes>
+                <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<UserManagement />} />
+                <Route path="profile" element={<AdminProfile />} />
+                <Route path="industry" element={<VerifyIndustry />} />
+                <Route path="departments" element={<AdminDepartments />} />
+                <Route path="reports" element={<GlobalReports />} />
+                <Route path="settings" element={<AdminSettings />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
+            </AdminLayout>
+          </ProtectedRoute>
+        } />
 
-        {/* Shared Features (Role Specific) */}
-        <Route path="/dashboard/student/settings" element={<StudentLayout><StudentSettings /></StudentLayout>} />
-        <Route path="/dashboard/supervisor/settings" element={<SupervisorLayout><SupervisorSettings /></SupervisorLayout>} />
-        <Route path="/dashboard/industry/settings" element={<IndustryLayout><IndustrySettings /></IndustryLayout>} />
-        <Route path="/dashboard/admin/settings" element={<AdminLayout><AdminSettings /></AdminLayout>} />
 
         {/* Auth Flow */}
-        <Route path="/auth/login" element={<Login />} />
-        <Route path="/auth/register" element={<Register />} />
-        <Route path="/auth/verify-otp" element={<VerifyOTP />} />
-        <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/login" element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path="/auth/register" element={<GuestRoute><Register /></GuestRoute>} />
+        <Route path="/auth/verify-otp" element={<GuestRoute><VerifyOTP /></GuestRoute>} />
+        <Route path="/auth/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+        <Route path="/auth/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
 
-        <Route path="*" element={<Navigate to="/auth/login" />} />
+        {/* 404 Route */}
+        <Route path="/404" element={<NotFound />} />
+        <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>
     </>
   );
