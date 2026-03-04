@@ -62,30 +62,33 @@ The system is architected around four distinct "Nodes," each with a specialized 
 
 ---
 
-## 🔄 Project Flow
+---
 
-```mermaid
-graph TD
-    A[Student Registration] --> B{Academic Sync}
-    B -->|Verified| C[Browse Internship Hub]
-    B -->|Flagged| D[Registrar Review]
-    
-    C --> E[Apply for Position]
-    E --> F{Auto-Eligibility Check}
-    F -->|Passed| G[Industry Vetting]
-    F -->|Failed| H[Immediate Feedback]
-    
-    G --> I[Placement Confirmed]
-    I --> J[Daily/Weekly Log Submissions]
-    
-    J --> K[Industry Evaluator]
-    J --> L[Faculty Supervisor]
-    
-    K --> M[Final Professional Marking]
-    L --> N[Final Academic Marking]
-    
-    M & N --> O[Internship Completion Approved]
-```
+## 🔄 Complete Professional Flow (Step-by-Step)
+
+### 🚀 Phase 1: Identity & Setup
+**Student / Industry / Supervisor** -> **Register** -> **Verify OTP** (Check Server Console) -> **Active Account**
+> *Note: Industry Partners must be **Approved by Admin** before posting.*
+
+### 🛠️ Phase 2: The Placement Journey
+**Industry** -> **Post Internship** -> **Visible in Hub**
+**Student** -> **Browse Hub** -> **Apply** -> (Status: `applied`)
+**Supervisor** -> **Review Student Record** -> **ENDORSE APPLICATION** -> (Status: `supervisor_endorsed`)
+**Industry** -> **View Endorsed Candidates** -> **HIRE / SELECT** -> (Status: `industry_selected`)
+
+### 🎓 Phase 3: Monitoring & Graduation
+**Student** -> **Submit Weekly Logs** -> **Supervisor Reviews Logs**
+**Internship End** -> **Industry Evaluates Intern** -> **Supervisor Completes Final Marking**
+**Result** -> **Application Completed** (Status: `completed`)
+
+---
+
+## 🧪 System Backbone & Testing
+
+For a deep-dive into the technical architecture, role permissions, and a **Step-by-Step Testing Walkthrough**, refer to the:
+[**IMS Complete Project Flow & Testing Guide**](file:///C:/Users/mshoa/.gemini/antigravity/brain/257aa15a-8ea4-49e8-863c-aa6c8fdc161e/project_flow.md)
+
+---
 
 ---
 
