@@ -3,30 +3,89 @@ import Log from '../models/log.model.js';
 import SiteVisit from '../models/siteVisit.model.js';
 import Marking from '../models/marking.model.js';
 import Application from '../models/application.model.js';
+import PerformanceEvaluation from '../models/performanceEvaluation.model.js';
 import catchAsync from '../utils/catchAsync.utils.js';
 import AppError from '../utils/appError.utils.js';
+import { createNotification } from '../utils/notification.utils.js';
 
 // 1. Get Supervisor Dashboard Stats
 export const getSupervisorStats = catchAsync(async (req, res, next) => {
     const supervisorId = req.user.id;
 
-    const stats = {
-        assignedStudents: await User.countDocuments({ role: 'student', supervisor: supervisorId }),
-        pendingLogs: await Log.countDocuments({
-            status: 'submitted',
-            student: { $in: await User.find({ supervisor: supervisorId }).distinct('_id') }
-        }),
-        siteVisits: await SiteVisit.countDocuments({ supervisor: supervisorId, status: 'upcoming' }),
-        finalMarkingReady: await Application.countDocuments({
-            status: 'industry_selected', // Assuming this means ready for final marking by supervisor
-            student: { $in: await User.find({ supervisor: supervisorId }).distinct('_id') }
-        })
-    };
+    // Parallelize queries for better performance
+    const [assignedStudents, assignedStudentIds] = await Promise.all([
+        User.countDocuments({ role: 'student', 'studentMeta.supervisor': supervisorId }),
+        User.find({ role: 'student', 'studentMeta.supervisor': supervisorId }).distinct('_id')
+    ]);
 
-    // Recent Activity / Monitoring Queue (Students assigned to this supervisor)
-    const monitoringQueue = await User.find({ role: 'student', supervisor: supervisorId })
-        .select('name studentMeta status updatedAt')
-        .limit(5);
+    const [pendingLogs, siteVisits, finalMarkingReady, pendingEndorsements, monitoringQueue] = await Promise.all([
+        Log.countDocuments({
+            status: 'submitted',
+            student: { $in: assignedStudentIds }
+        }),
+        SiteVisit.countDocuments({ supervisor: supervisorId, status: 'upcoming' }),
+        Application.countDocuments({
+            status: 'industry_selected',
+            student: { $in: assignedStudentIds }
+        }),
+        (async () => {
+            if (req.user.role === 'admin') {
+                return await Application.countDocuments({ status: 'applied' });
+            }
+            const dept = req.user.supervisorMeta?.department;
+            console.log('--- DASHBOARD DEBUG ---');
+            console.log('Supervisor Dept:', `"${dept}"`);
+            if (!dept) return 0;
+
+            const allStudents = await User.find({ role: 'student' }).limit(10).select('name studentMeta academicDetails');
+            console.log('--- ALL STUDENTS DUMP ---');
+            allStudents.forEach(s => {
+                console.log(`Student: ${s.name} | Meta: "${s.studentMeta?.department}" | Acad: "${s.academicDetails?.department}"`);
+            });
+
+            const deptStudentIds = await User.find({
+                role: 'student',
+                $or: [
+                    { 'studentMeta.department': { $regex: new RegExp(`^${dept}$`, 'i') } },
+                    { 'academicDetails.department': { $regex: new RegExp(`^${dept}$`, 'i') } }
+                ]
+            }).distinct('_id');
+
+            console.log('Dept Students Found:', deptStudentIds.length);
+
+            const count = await Application.countDocuments({
+                status: 'applied',
+                student: { $in: deptStudentIds }
+            });
+            console.log('Pending Endorsements Count:', count);
+            return count;
+        })(),
+        (async () => {
+            const monitoringQueueRaw = await User.find({ role: 'student', 'studentMeta.supervisor': supervisorId })
+                .select('name studentMeta status updatedAt avatar')
+                .limit(5);
+
+            const monitoringQueue = await Promise.all(monitoringQueueRaw.map(async (student) => {
+                const [totalLogs, pendingLogs] = await Promise.all([
+                    Log.countDocuments({ student: student._id }),
+                    Log.countDocuments({ student: student._id, status: 'submitted' })
+                ]);
+
+                const studentObj = student.toObject();
+                studentObj.stats = { totalLogs, pendingLogs };
+                return studentObj;
+            }));
+            return monitoringQueue;
+        })()
+    ]);
+
+    const stats = {
+        assignedStudents,
+        pendingLogs,
+        siteVisits,
+        finalMarkingReady,
+        pendingEndorsements
+    };
 
     res.status(200).json({
         status: 'success',
@@ -36,22 +95,36 @@ export const getSupervisorStats = catchAsync(async (req, res, next) => {
 
 // 2. Get Assigned Students
 export const getAssignedStudents = catchAsync(async (req, res, next) => {
-    const students = await User.find({ role: 'student', supervisor: req.user.id })
+    const students = await User.find({ role: 'student', 'studentMeta.supervisor': req.user.id })
         .populate({
             path: 'studentMeta.currentApplication',
-            populate: { path: 'internship', select: 'title industry' }
+            populate: { path: 'internship', select: 'title industry companyName' }
         });
+
+    // Fetch log counts and industry evaluation for each student
+    const studentsWithStats = await Promise.all(students.map(async (student) => {
+        const [totalLogs, pendingLogs, performanceEvaluation] = await Promise.all([
+            Log.countDocuments({ student: student._id }),
+            Log.countDocuments({ student: student._id, status: 'submitted' }),
+            PerformanceEvaluation.findOne({ student: student._id, period: 'Final' })
+        ]);
+
+        const studentObj = student.toObject();
+        studentObj.stats = { totalLogs, pendingLogs };
+        studentObj.performanceEvaluation = performanceEvaluation;
+        return studentObj;
+    }));
 
     res.status(200).json({
         status: 'success',
-        results: students.length,
-        data: { students }
+        results: studentsWithStats.length,
+        data: { students: studentsWithStats }
     });
 });
 
 // 3. Review Weekly Log
 export const reviewLog = catchAsync(async (req, res, next) => {
-    const { status, supervisorComments } = req.body;
+    const { status, supervisorComments, marks } = req.body;
 
     if (!['approved', 'rejected'].includes(status)) {
         return next(new AppError('Please provide a valid status (approved or rejected)', 400));
@@ -64,7 +137,7 @@ export const reviewLog = catchAsync(async (req, res, next) => {
     }
 
     // Check if student is assigned to this supervisor (Admin bypass)
-    const isSupervisorOwner = log.student.supervisor?.toString() === req.user.id;
+    const isSupervisorOwner = log.student.studentMeta?.supervisor?.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin';
 
     if (!isSupervisorOwner && !isAdmin) {
@@ -72,7 +145,8 @@ export const reviewLog = catchAsync(async (req, res, next) => {
     }
 
     log.status = status;
-    log.supervisorComments = supervisorComments;
+    if (supervisorComments !== undefined) log.supervisorComments = supervisorComments;
+    if (marks !== undefined) log.marks = marks;
     log.reviewedAt = Date.now();
     await log.save();
 
@@ -88,7 +162,7 @@ export const scheduleVisit = catchAsync(async (req, res, next) => {
 
     // Check if student is assigned to this supervisor (Admin bypass)
     const student = await User.findById(studentId);
-    const isSupervisorOwner = student && student.supervisor?.toString() === req.user.id;
+    const isSupervisorOwner = student && student.studentMeta?.supervisor?.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin';
 
     if (!student || (!isSupervisorOwner && !isAdmin)) {
@@ -103,6 +177,15 @@ export const scheduleVisit = catchAsync(async (req, res, next) => {
     res.status(201).json({
         status: 'success',
         data: { visit }
+    });
+
+    // Notify Student
+    await createNotification({
+        type: 'SYSTEM_ALERT',
+        message: `A site visit has been scheduled for ${new Date(visit.date).toLocaleDateString()} at ${visit.time}`,
+        user: visit.student,
+        relatedUser: req.user.id,
+        priority: 'medium'
     });
 });
 
@@ -124,11 +207,25 @@ export const submitMarking = catchAsync(async (req, res, next) => {
 
     // Check if student is assigned to this supervisor (Admin bypass)
     const student = await User.findById(studentId);
-    const isSupervisorOwner = student && student.supervisor?.toString() === req.user.id;
+    const isSupervisorOwner = student && student.studentMeta?.supervisor?.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin';
 
     if (!student || (!isSupervisorOwner && !isAdmin)) {
         return next(new AppError('You can only submit marking for your assigned students (or you are not an authorized admin)', 403));
+    }
+
+    // Validation for metrics (0-100) and industry GPA (0-4)
+    if (metrics) {
+        const fields = ['technicalProficiency', 'softSkills', 'logConsistency', 'industryFeedback'];
+        for (const field of fields) {
+            if (metrics[field] < 0 || metrics[field] > 100) {
+                return next(new AppError(`${field} must be between 0 and 100`, 400));
+            }
+        }
+    }
+
+    if (industryGpa !== undefined && (industryGpa < 0 || industryGpa > 4)) {
+        return next(new AppError('Industry GPA must be between 0 and 4.0', 400));
     }
 
     const marking = await Marking.create({
@@ -148,5 +245,109 @@ export const submitMarking = catchAsync(async (req, res, next) => {
     res.status(201).json({
         status: 'success',
         data: { marking }
+    });
+
+    // Notify Student
+    await createNotification({
+        type: 'MARKING_PUBLISHED',
+        message: `Your final internship evaluation and marking has been published by your supervisor.`,
+        user: studentId,
+        relatedUser: req.user.id,
+        priority: 'high'
+    });
+});
+
+// 6. Get Pending Applications for Endorsement
+export const getPendingApplications = catchAsync(async (req, res, next) => {
+    // Get supervisor's department to filter relevant applications
+    const supervisor = await User.findById(req.user.id);
+    const department = supervisor.supervisorMeta?.department?.trim();
+    const isAdmin = req.user.role === 'admin';
+
+    console.log('--- DEBUG ENDORSEMENTS ---');
+    console.log('Supervisor Dept:', `"${department}"`);
+    console.log('Is Admin:', isAdmin);
+
+    if (!department && !isAdmin) {
+        return next(new AppError('Supervisor department not set. Please update your profile.', 400));
+    }
+
+    const applications = await Application.find({
+        status: 'applied'
+    })
+        .populate({
+            path: 'student',
+            select: 'name email avatar studentMeta academicDetails',
+            // Use case-insensitive regex for department filtering on both meta and academic fields
+            match: isAdmin ? {} : {
+                $or: [
+                    { 'studentMeta.department': { $regex: new RegExp(`^${department}$`, 'i') } },
+                    { 'academicDetails.department': { $regex: new RegExp(`^${department}$`, 'i') } }
+                ]
+            }
+        })
+        .populate('internship', 'title companyName');
+
+    console.log('Total Apps Found (applied):', applications.length);
+
+    // Debug each app's student department
+    applications.forEach((app, i) => {
+        console.log(`App ${i}: Student: ${app.student?.name}, Dept (Meta): "${app.student?.studentMeta?.department}", Dept (Academic): "${app.student?.academicDetails?.department}"`);
+    });
+
+    // Filter out applications where student didn't match the department (unless admin)
+    const filteredApplications = applications.filter(app => app.student);
+    console.log('Filtered Apps (match dept):', filteredApplications.length);
+
+    res.status(200).json({
+        status: 'success',
+        results: filteredApplications.length,
+        data: { applications: filteredApplications }
+    });
+});
+
+// 7. Endorse or Reject Application
+export const endorseApplication = catchAsync(async (req, res, next) => {
+    const { status, feedback } = req.body;
+
+    if (!['supervisor_endorsed', 'rejected'].includes(status)) {
+        return next(new AppError('Status must be supervisor_endorsed or rejected', 400));
+    }
+
+    const application = await Application.findById(req.params.id).populate('student');
+
+    if (!application) {
+        return next(new AppError('No application found with that ID', 404));
+    }
+
+    // Update Application
+    application.status = status;
+    if (feedback) application.feedback = feedback;
+    await application.save();
+
+    // If endorsed, assign student to this supervisor
+    if (status === 'supervisor_endorsed') {
+        await User.findByIdAndUpdate(application.student._id, {
+            'studentMeta.supervisor': req.user.id,
+            'studentMeta.currentApplication': application._id,
+            status: 'active' // Ensure student is active once endorsed/assigned
+        });
+    }
+
+    // Create notification for student
+
+    // Create notification for student
+    // Create notification for student
+    await createNotification({
+        type: 'APPLICATION_UPDATE',
+        message: `Your application has been ${status === 'supervisor_endorsed' ? 'endorsed by your supervisor' : 'rejected'}.`,
+        user: application.student._id,
+        relatedUser: req.user.id,
+        priority: 'medium'
+    });
+
+    res.status(200).json({
+        status: 'success',
+        data: { application }
     });
 });
