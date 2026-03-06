@@ -16,6 +16,7 @@ const logSchema = new mongoose.Schema({
         default: Date.now()
     },
     weekNumber: Number,
+    hoursWorked: Number,
     dateRange: String, // e.g. "Oct 23 - Oct 27"
     summary: String,    // For the list view
     tasksPerformed: {
@@ -24,12 +25,28 @@ const logSchema = new mongoose.Schema({
     },
     challenges: String,
     learnings: String,
+    attachment: {
+        url: String,
+        originalName: String
+    },
     status: {
         type: String,
-        enum: ['submitted', 'approved', 'rejected'],
+        enum: ['pending_student', 'submitted', 'approved', 'rejected'],
         default: 'submitted'
     },
-    supervisorComments: String
+    supervisorComments: String,
+    marks: {
+        type: Number,
+        min: 0,
+        max: 100
+    },
+    industryComments: String,
+    industryMarks: {
+        type: Number,
+        min: 0,
+        max: 100
+    },
+    assignedTasks: String // Next week's goals set by Industry
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
