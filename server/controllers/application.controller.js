@@ -35,7 +35,8 @@ export const applyToInternship = catchAsync(async (req, res, next) => {
     // Create Notification for industry/admin
     await createNotification({
         type: 'APPLICATION_SUBMISSION',
-        message: `New internship application submitted: Node ${req.user.name} initiated request`,
+        message: `New internship application submitted: ${req.user.name} initiated request for ${application.internship.title}`,
+        recipientRole: 'industry',
         relatedUser: req.user.id,
         priority: 'low'
     });
