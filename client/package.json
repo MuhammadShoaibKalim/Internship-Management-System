@@ -16,6 +16,7 @@
     "@shadcn/ui": "^0.0.4",
     "@stripe/stripe-js": "^6.0.0",
     "axios": "^1.7.9",
+    "date-fns": "^4.1.0",
     "install": "^0.13.0",
     "lucide-react": "^0.479.0",
     "npm": "^11.0.0",
