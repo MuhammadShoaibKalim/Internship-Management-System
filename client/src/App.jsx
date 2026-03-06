@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import ScrollToTop from './components/common/ScrollToTop';
 import LoadingBar from './components/common/LoadingBar';
 
@@ -28,6 +29,7 @@ import StudentLogs from './pages/student/StudentLogs';
 import StudentCertificates from './pages/student/StudentCertificates';
 import StudentCVBuilder from './pages/student/StudentCVBuilder';
 import StudentSettings from './pages/student/StudentSettings';
+import InternshipResult from './pages/student/InternshipResult';
 import SupervisorSettings from './pages/supervisor/SupervisorSettings';
 
 // Industry Pages
@@ -38,6 +40,7 @@ import IndustryInterns from './pages/industry/IndustryInterns';
 import IndustryEvaluations from './pages/industry/IndustryEvaluations';
 import IndustryProfile from './pages/industry/IndustryProfile';
 import IndustrySettings from './pages/industry/IndustrySettings';
+import IndustryLogs from './pages/industry/IndustryLogs';
 
 // Supervisor & Admin Components
 import SupervisorDashboard from './pages/dashboard/SupervisorDashboard';
@@ -45,6 +48,7 @@ import AssignedStudents from './pages/supervisor/AssignedStudents';
 import LogReviews from './pages/supervisor/LogReviews';
 import SiteVisits from './pages/supervisor/SiteVisits';
 import FinalMarking from './pages/supervisor/FinalMarking';
+import ApplicationEndorsements from './pages/supervisor/ApplicationEndorsements';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
 import UserManagement from './pages/admin/UserManagement';
 import AdminProfile from './pages/admin/AdminProfile';
@@ -58,6 +62,36 @@ const App = () => {
     <>
       <ScrollToTop />
       <LoadingBar />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#0f172a',
+            color: '#fff',
+            borderRadius: '1rem',
+            fontSize: '11px',
+            fontWeight: 'bold',
+            textTransform: 'uppercase',
+            letterSpacing: '0.1em',
+            padding: '16px 24px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#f43f5e',
+              secondary: '#fff',
+            },
+          }
+        }}
+      />
       <Routes>
         {/* Root Redirect based on Role */}
         <Route path="/" element={<RoleBasedRedirect />} />
@@ -73,6 +107,7 @@ const App = () => {
                 <Route path="logs" element={<StudentLogs />} />
                 <Route path="certificates" element={<StudentCertificates />} />
                 <Route path="cv-builder" element={<StudentCVBuilder />} />
+                <Route path="result" element={<InternshipResult />} />
                 <Route path="settings" element={<StudentSettings />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
               </Routes>
@@ -90,6 +125,7 @@ const App = () => {
                 <Route path="applicants" element={<IndustryApplicants />} />
                 <Route path="interns" element={<IndustryInterns />} />
                 <Route path="evaluations" element={<IndustryEvaluations />} />
+                <Route path="logs" element={<IndustryLogs />} />
                 <Route path="profile" element={<IndustryProfile />} />
                 <Route path="settings" element={<IndustrySettings />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
@@ -108,6 +144,7 @@ const App = () => {
                 <Route path="logs" element={<LogReviews />} />
                 <Route path="visits" element={<SiteVisits />} />
                 <Route path="marking" element={<FinalMarking />} />
+                <Route path="endorsements" element={<ApplicationEndorsements />} />
                 <Route path="settings" element={<SupervisorSettings />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
               </Routes>
