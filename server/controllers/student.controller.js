@@ -2,6 +2,8 @@ import path from 'path';
 import User from '../models/user.model.js';
 import Application from '../models/application.model.js';
 import Log from '../models/log.model.js';
+import Marking from '../models/marking.model.js';
+import PerformanceEvaluation from '../models/performanceEvaluation.model.js';
 import catchAsync from '../utils/catchAsync.utils.js';
 import AppError from '../utils/appError.utils.js';
 
@@ -56,21 +58,26 @@ export const getMyProfile = catchAsync(async (req, res, next) => {
 
 // 3. Update Student Profile
 export const updateMyProfile = catchAsync(async (req, res, next) => {
-    // Filter out restricted fields like password, role, etc.
-    const filteredBody = { ...req.body };
-    delete filteredBody.password;
-    delete filteredBody.role;
-    delete filteredBody.email;
-    delete filteredBody.status;
+    const user = await User.findById(req.user.id);
 
-    const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
-        new: true,
-        runValidators: true
+    if (!user) {
+        return next(new AppError('User not found', 404));
+    }
+
+    // Filter out restricted fields and update
+    const allowedFields = ['name', 'phone', 'academicDetails', 'skills', 'avatar'];
+    Object.keys(req.body).forEach(el => {
+        if (allowedFields.includes(el)) {
+            user[el] = req.body[el];
+        }
     });
+
+    // Use .save() to trigger pre-save middlewares (for department sync)
+    await user.save({ validateBeforeSave: false });
 
     res.status(200).json({
         status: 'success',
-        data: { user: updatedUser }
+        data: { user }
     });
 });
 
@@ -291,3 +298,46 @@ export const deleteDocument = catchAsync(async (req, res, next) => {
         message: 'Document removed successfully'
     });
 });
+
+// 9. Get Student's Final Marking Result (Holistic view of Academic + Industry)
+export const getMyMarking = catchAsync(async (req, res, next) => {
+    // 1. Get Academic Marking
+    const marking = await Marking.findOne({ student: req.user.id })
+        .populate('supervisor', 'name email avatar')
+        .populate({
+            path: 'application',
+            populate: {
+                path: 'internship',
+                select: 'title companyName'
+            }
+        })
+        .sort('-createdAt');
+
+    // 2. Get Industry Performance Evaluation (Final)
+    const industryEvaluation = await PerformanceEvaluation.findOne({
+        student: req.user.id,
+        period: 'Final'
+    })
+        .populate('student', 'name')
+        .populate('industry', 'name avatar')
+        .populate({
+            path: 'application',
+            populate: {
+                path: 'internship',
+                select: 'title companyName'
+            }
+        });
+
+    if (!marking && !industryEvaluation) {
+        return next(new AppError('No evaluation records found for your internship yet.', 404));
+    }
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            marking,
+            industryEvaluation
+        }
+    });
+});
+
