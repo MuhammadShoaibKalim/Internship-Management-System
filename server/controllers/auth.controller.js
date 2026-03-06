@@ -10,25 +10,35 @@ import { createNotification } from '../utils/notification.utils.js';
 
 // 1. REGISTER (STEP 1: Details Submission)
 export const signup = catchAsync(async (req, res, next) => {
+    let { identifier, password, passwordConfirm, role } = req.body;
+    let email = identifier;
+
+    // 1. Resolve identifier for Students and Supervisors
+    if (role === 'student' || role === 'supervisor') {
+        // If it's a University ID (e.g., bsf2100926), auto-map to university email
+        if (/^(bsf|mt)\d{7}$/i.test(identifier)) {
+            email = `${identifier.toLowerCase()}@ue.edu.pk`;
+        }
+        // Otherwise, if it's already an email (even Gmail), we just use it as is.
+    }
+
     const newUser = await User.create({
-        name: req.body.name,
-        email: req.body.email,
-        password: req.body.password,
-        passwordConfirm: req.body.passwordConfirm,
-        role: req.body.role,
-        status: req.body.role === 'admin' ? 'active' : 'pending',
-        studentMeta: req.body.role === 'student' ? {
-            universityId: req.body.universityId,
+        email: email.toLowerCase(),
+        password,
+        passwordConfirm,
+        role,
+        status: role === 'admin' ? 'active' : 'pending',
+        studentMeta: role === 'student' ? {
+            universityId: /^(bsf|mt)\d{7}$/i.test(identifier.split('@')[0]) ? identifier.split('@')[0] : undefined,
             department: req.body.department,
             cgpa: req.body.cgpa
         } : undefined,
-        industryMeta: req.body.role === 'industry' ? {
+        industryMeta: role === 'industry' ? {
             companyName: req.body.companyName,
             website: req.body.website,
             companyAddress: req.body.companyAddress
         } : undefined,
-        supervisorMeta: req.body.role === 'supervisor' ? {
-            universityId: req.body.universityId,
+        supervisorMeta: role === 'supervisor' ? {
             department: req.body.department,
             specialization: req.body.specialization
         } : undefined
@@ -38,9 +48,12 @@ export const signup = catchAsync(async (req, res, next) => {
     const otpCode = newUser.createOTP();
     await newUser.save({ validateBeforeSave: false });
 
-    logger.info(`New User Signup Attempt: ${newUser.email} (Role: ${newUser.role})`);
-
     // Send OTP via Email
+    console.log('---------- TEST OTP ----------');
+    console.log(`Email: ${newUser.email}`);
+    console.log(`OTP Code: ${otpCode}`);
+    console.log('------------------------------');
+
     try {
         await sendEmail({
             email: newUser.email,
@@ -100,10 +113,17 @@ export const verifyOTP = catchAsync(async (req, res, next) => {
 
 // 3. LOGIN
 export const login = catchAsync(async (req, res, next) => {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    if (!email || !password) {
-        return next(new AppError('Please provide email and password!', 400));
+    if (!identifier || !password) {
+        return next(new AppError('Please provide email/ID and password!', 400));
+    }
+
+    let email = identifier.toLowerCase();
+
+    // Resolve identifier for University members (Students/Supervisors)
+    if (/^(bsf|mt)\d{7}$/i.test(identifier)) {
+        email = `${identifier.toLowerCase()}@ue.edu.pk`;
     }
 
     const user = await User.findOne({ email }).select('+password');
