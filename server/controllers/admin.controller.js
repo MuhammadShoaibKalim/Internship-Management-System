@@ -101,8 +101,18 @@ export const updateUserStatus = catchAsync(async (req, res, next) => {
     await createNotification({
         type: 'SYSTEM_ALERT',
         message: `Identity status synchronized: ${user.name} established as ${user.status}`,
+        recipientRole: 'admin',
         relatedUser: user._id,
         priority: 'low'
+    });
+
+    // Notification for User
+    await createNotification({
+        type: 'SECURITY',
+        message: `Your account status has been updated to ${user.status} by an administrator.`,
+        user: user._id,
+        relatedUser: req.user.id,
+        priority: 'medium'
     });
 });
 
@@ -154,8 +164,18 @@ export const verifyIndustry = catchAsync(async (req, res, next) => {
     await createNotification({
         type: 'INDUSTRY_VERIFICATION',
         message: `Industry node ${status}: ${user.name} verification finalized`,
+        recipientRole: 'admin',
         relatedUser: user._id,
         priority: status === 'active' ? 'medium' : 'high'
+    });
+
+    // Notification for Industry
+    await createNotification({
+        type: 'INDUSTRY_VERIFICATION',
+        message: `Your industry account verification status has been updated to: ${status}`,
+        user: user._id,
+        relatedUser: req.user.id,
+        priority: 'high'
     });
 });
 
