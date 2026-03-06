@@ -1,6 +1,5 @@
 import express from 'express';
 import cors from 'cors';
-import morgan from 'morgan';
 import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
@@ -26,16 +25,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 
-app.set('etag', false); 
+app.set('etag', false);
 app.use(requestLogger);
 app.use(helmet({
     crossOriginResourcePolicy: false,
     contentSecurityPolicy: false,
 }));
 
-if (process.env.NODE_ENV === 'development') {
-    app.use(morgan('dev'));
-}
+
 
 app.use(cors({
     origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
