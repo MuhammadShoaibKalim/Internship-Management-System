@@ -38,6 +38,19 @@ const performanceEvaluationSchema = new mongoose.Schema({
     evaluatedAt: {
         type: Date,
         default: Date.now()
+    },
+    certificate: {
+        url: String,
+        originalName: String
+    },
+    // Auto-calculated stats from logs
+    totalHours: { type: Number, default: 0 },
+    totalTasksCompleted: { type: Number, default: 0 },
+    totalDocsUploaded: { type: Number, default: 0 },
+    gradeTier: {
+        type: String,
+        enum: ['Distinction', 'Merit', 'Pass', 'Fail'],
+        default: 'Pass'
     }
 }, {
     timestamps: true
@@ -49,6 +62,12 @@ performanceEvaluationSchema.pre('save', function (next) {
         const values = Object.values(this.metrics);
         const sum = values.reduce((acc, curr) => acc + curr, 0);
         this.overallScore = (sum / (values.length * 10)) * 100;
+
+        // Auto-assign grade tier based on overall score
+        if (this.overallScore >= 85) this.gradeTier = 'Distinction';
+        else if (this.overallScore >= 70) this.gradeTier = 'Merit';
+        else if (this.overallScore >= 50) this.gradeTier = 'Pass';
+        else this.gradeTier = 'Fail';
     }
     next();
 });
