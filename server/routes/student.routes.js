@@ -10,7 +10,8 @@ import {
     getCertificateDetails,
     deleteCertificate,
     uploadDocument,
-    deleteDocument
+    deleteDocument,
+    getMyMarking
 } from '../controllers/student.controller.js';
 import { protect, restrictTo } from '../middleware/auth.middleware.js';
 import { uploadCertificateFile, uploadCVFile, uploadDocumentFile } from '../utils/upload.utils.js';
@@ -38,5 +39,8 @@ router.delete('/certificates/:applicationId', deleteCertificate);
 // ─── Generic Documents ────────────────────────────────────────────────────────
 router.post('/upload-document', uploadDocumentFile, uploadDocument);
 router.delete('/documents/:documentId', deleteDocument);
+
+// ─── Final Marking ────────────────────────────────────────────────────────────
+router.get('/marking', getMyMarking);
 
 export default router;
