@@ -86,7 +86,7 @@ The system is architected around four distinct "Nodes," each with a specialized 
 ## 🧪 System Backbone & Testing
 
 For a deep-dive into the technical architecture, role permissions, and a **Step-by-Step Testing Walkthrough**, refer to the:
-[**IMS Complete Project Flow & Testing Guide**](file:///C:/Users/mshoa/.gemini/antigravity/brain/257aa15a-8ea4-49e8-863c-aa6c8fdc161e/project_flow.md)
+[**IMS Complete Project Flow & Testing Guide**](./PROJECT_FLOW.md)
 
 ---
 
