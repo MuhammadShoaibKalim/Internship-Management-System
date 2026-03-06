@@ -3,21 +3,42 @@ import mongoose from 'mongoose';
 const notificationSchema = new mongoose.Schema({
     type: {
         type: String,
-        enum: ['USER_REGISTRATION', 'INDUSTRY_VERIFICATION', 'APPLICATION_SUBMISSION', 'SYSTEM_ALERT', 'SECURITY', 'AUTH_LOG'],
+        enum: [
+            'USER_REGISTRATION',
+            'INDUSTRY_VERIFICATION',
+            'APPLICATION_SUBMISSION',
+            'APPLICATION_UPDATE',
+            'LOG_SUBMISSION',
+            'LOG_REVIEW',
+            'EVALUATION_SUBMITTED',
+            'MARKING_PUBLISHED',
+            'SYSTEM_ALERT',
+            'SECURITY',
+            'AUTH_LOG'
+        ],
         required: true
     },
     message: {
         type: String,
         required: true
     },
-    recipient: {
+    recipientRole: {
         type: String,
         enum: ['admin', 'student', 'industry', 'supervisor', 'all'],
-        default: 'admin'
+    },
+    user: {
+        type: mongoose.Schema.ObjectId,
+        ref: 'User',
+        description: 'Specific user to receive this notification'
     },
     relatedUser: {
         type: mongoose.Schema.ObjectId,
-        ref: 'User'
+        ref: 'User',
+        description: 'User who triggered the action'
+    },
+    isRead: {
+        type: Boolean,
+        default: false
     },
     readBy: [{
         type: mongoose.Schema.ObjectId,
