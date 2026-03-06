@@ -7,11 +7,29 @@ import { createNotification } from '../utils/notification.utils.js';
 export const applyToInternship = catchAsync(async (req, res, next) => {
     const { internshipId, resume, coverLetter } = req.body;
 
+    // Use provided resume or fallback to student's stored CV
+    const finalResume = resume || req.user.cvUrl;
+
+    if (!finalResume) {
+        return next(new AppError('Please upload your CV/Resume in Settings before applying.', 400));
+    }
+
+    // 1. Enforce "One active internship" rule
+    const existingActiveApplication = await Application.findOne({
+        student: req.user.id,
+        status: { $nin: ['rejected', 'completed'] }
+    });
+
+    if (existingActiveApplication) {
+        return next(new AppError('You already have an active or pending internship process. You can only apply for one internship at a time.', 400));
+    }
+
     const newApplication = await Application.create({
         student: req.user.id,
         internship: internshipId,
-        resume,
-        coverLetter
+        resume: finalResume,
+        coverLetter,
+        status: 'applied'
     });
 
     // Create Notification for industry/admin
@@ -33,7 +51,11 @@ export const getMyApplications = catchAsync(async (req, res, next) => {
     const applications = await Application.find({ student: req.user.id })
         .populate({
             path: 'internship',
-            select: 'title companyName status'
+            select: 'title companyName status industry',
+            populate: {
+                path: 'industry',
+                select: 'avatar'
+            }
         });
 
     res.status(200).json({
@@ -56,7 +78,7 @@ export const getApplication = catchAsync(async (req, res, next) => {
     // Ownership/Access Check
     const isStudentOwner = req.user.role === 'student' && application.student._id.toString() === req.user.id;
     const isIndustryOwner = req.user.role === 'industry' && application.internship.industry.toString() === req.user.id;
-    const isSupervisorOwner = req.user.role === 'supervisor' && application.student.supervisor?.toString() === req.user.id;
+    const isSupervisorOwner = req.user.role === 'supervisor' && application.student.studentMeta?.supervisor?.toString() === req.user.id;
     const isAdmin = req.user.role === 'admin';
 
     if (!isStudentOwner && !isIndustryOwner && !isSupervisorOwner && !isAdmin) {
