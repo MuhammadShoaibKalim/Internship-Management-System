@@ -2,8 +2,10 @@ import Internship from '../models/internship.model.js';
 import Application from '../models/application.model.js';
 import PerformanceEvaluation from '../models/performanceEvaluation.model.js';
 import User from '../models/user.model.js';
+import Log from '../models/log.model.js';
 import catchAsync from '../utils/catchAsync.utils.js';
 import AppError from '../utils/appError.utils.js';
+import { createNotification } from '../utils/notification.utils.js';
 
 // 1. Dashboard Stats
 export const getIndustryStats = catchAsync(async (req, res, next) => {
@@ -17,6 +19,14 @@ export const getIndustryStats = catchAsync(async (req, res, next) => {
         onboardingInterns: await Application.countDocuments({
             status: 'approved',
             internship: { $in: await Internship.find({ industry: industryId }).distinct('_id') }
+        }),
+        pendingLogs: await Log.countDocuments({
+            industryMarks: { $exists: false },
+            application: {
+                $in: await Application.find({
+                    internship: { $in: await Internship.find({ industry: industryId }).distinct('_id') }
+                }).distinct('_id')
+            }
         })
     };
 
@@ -88,10 +98,9 @@ export const deleteInternship = catchAsync(async (req, res, next) => {
 // 3. Talent Pipeline (Applicants)
 export const getApplicants = catchAsync(async (req, res, next) => {
     const filter = {
-        internship: { $in: await Internship.find({ industry: req.user.id }).distinct('_id') }
+        internship: { $in: await Internship.find({ industry: req.user.id }).distinct('_id') },
+        status: req.query.status || 'supervisor_endorsed' // Defaults to endorsed only
     };
-
-    if (req.query.status) filter.status = req.query.status;
 
     const applicants = await Application.find(filter)
         .populate('student', 'name email studentMeta avatar phone')
@@ -117,9 +126,23 @@ export const updateApplicantStatus = catchAsync(async (req, res, next) => {
         return next(new AppError('Not authorized to manage this application', 403));
     }
 
+    // Ensure they can only hire if supervisor has endorsed
+    if (status === 'approved' && application.status !== 'supervisor_endorsed' && !isAdmin) {
+        return next(new AppError('Academic endorsement is required before final industry selection.', 400));
+    }
+
     application.status = status;
     if (feedback) application.feedback = feedback;
     await application.save();
+
+    // Notify Student
+    await createNotification({
+        type: 'APPLICATION_UPDATE',
+        message: `Industrial node update: ${application.internship.companyName} has ${status === 'approved' ? 'finalized your selection' : 'updated your status to ' + status}`,
+        user: application.student._id,
+        relatedUser: req.user.id,
+        priority: 'medium'
+    });
 
     res.status(200).json({
         status: 'success',
@@ -127,14 +150,14 @@ export const updateApplicantStatus = catchAsync(async (req, res, next) => {
     });
 });
 
-// 4. Intern Management
+// 4. Intern Management (Active Interns)
 export const getActiveInterns = catchAsync(async (req, res, next) => {
     const interns = await Application.find({
-        status: 'approved', // 'approved' means they are officially interns
+        status: 'approved',
         internship: { $in: await Internship.find({ industry: req.user.id }).distinct('_id') }
     })
-        .populate('student', 'name email studentMeta avatar')
-        .populate('internship', 'title duration');
+        .populate('student', 'name email studentMeta avatar phone')
+        .populate('internship', 'title duration category');
 
     res.status(200).json({
         status: 'success',
@@ -145,7 +168,7 @@ export const getActiveInterns = catchAsync(async (req, res, next) => {
 
 // 5. Performance Evaluations
 export const submitEvaluation = catchAsync(async (req, res, next) => {
-    const { application: applicationId } = req.body;
+    const { application: applicationId, metrics, period, comments } = req.body;
 
     // Check if industry owns the internship linked to this application
     const application = await Application.findById(applicationId).populate('internship');
@@ -157,15 +180,107 @@ export const submitEvaluation = catchAsync(async (req, res, next) => {
         return next(new AppError('Not authorized to evaluate this application', 403));
     }
 
-    const evaluation = await PerformanceEvaluation.create({
-        ...req.body,
-        industry: req.user.id
-    });
+    // Guard: enforce all logs are submitted before Final evaluation
+    if (period === 'Final') {
+        const pendingLogs = await Log.countDocuments({
+            application: applicationId,
+            status: 'pending_student'
+        });
+        if (pendingLogs > 0) {
+            return next(new AppError(
+                `Cannot finalize evaluation. ${pendingLogs} weekly log(s) are still pending student submission.`,
+                400
+            ));
+        }
+    }
+
+    let certificate = undefined;
+    if (req.file) {
+        certificate = {
+            url: `/uploads/certificates/${req.file.filename}`,
+            originalName: req.file.originalname
+        };
+    }
+
+    let totalHours = 0;
+    let totalTasksCompleted = 0;
+    let totalDocsUploaded = 0;
+
+    if (period === 'Final') {
+        const approvedLogs = await Log.find({ application: applicationId, status: 'approved' });
+
+        approvedLogs.forEach(log => {
+            totalHours += (log.hoursWorked || 0);
+
+            if (log.tasksPerformed) {
+                totalTasksCompleted += log.tasksPerformed.split('\n').filter(t => t.trim() !== '').length;
+            }
+
+            if (log.attachment && log.attachment.url) {
+                totalDocsUploaded += 1;
+            }
+        });
+    }
+
+    let evaluation;
+    try {
+        evaluation = await PerformanceEvaluation.create({
+            application: applicationId,
+            student: application.student,
+            industry: req.user.id,
+            metrics: typeof metrics === 'string' ? JSON.parse(metrics) : metrics,
+            period,
+            comments,
+            certificate,
+            totalHours,
+            totalTasksCompleted,
+            totalDocsUploaded
+        });
+    } catch (saveError) {
+        console.error("EVALUATION SAVE ERROR:", saveError);
+        return next(new AppError('Failed to save evaluation: ' + saveError.message, 400));
+    }
+
+    // Mark application as completed if this is the final evaluation
+    if (period === 'Final') {
+        application.status = 'completed';
+
+        // Sync certificate to application if provided
+        if (certificate) {
+            application.certificate = {
+                url: certificate.url,
+                uploadedAt: new Date(),
+                originalName: certificate.originalName
+            };
+        }
+
+        await application.save();
+    }
 
     res.status(201).json({
         status: 'success',
         data: { evaluation }
     });
+
+    // Notify Student
+    await createNotification({
+        type: 'EVALUATION_SUBMITTED',
+        message: `A new ${period} performance evaluation has been submitted by ${application.internship.companyName}`,
+        user: application.student._id,
+        relatedUser: req.user.id,
+        priority: 'medium'
+    });
+
+    // Notify Supervisor if exists
+    if (application.student.studentMeta?.supervisor) {
+        await createNotification({
+            type: 'EVALUATION_SUBMITTED',
+            message: `Evaluation submitted for ${application.student.name} by ${application.internship.companyName}`,
+            user: application.student.studentMeta.supervisor,
+            relatedUser: req.user.id,
+            priority: 'low'
+        });
+    }
 });
 
 export const getEvaluations = catchAsync(async (req, res, next) => {
@@ -177,5 +292,49 @@ export const getEvaluations = catchAsync(async (req, res, next) => {
         status: 'success',
         results: evaluations.length,
         data: { evaluations }
+    });
+});
+
+// 6. Initialize Internship Plan (Pre-create Logs)
+export const initializeInternshipPlan = catchAsync(async (req, res, next) => {
+    const { applicationId, totalWeeks } = req.body;
+
+    // Check application and ownership
+    const application = await Application.findById(applicationId).populate('internship');
+    if (!application) return next(new AppError('No application found', 404));
+
+    if (application.internship.industry.toString() !== req.user.id && req.user.role !== 'admin') {
+        return next(new AppError('Not authorized to manage this internship', 403));
+    }
+
+    // Get existing week numbers to avoid duplicates
+    const existingLogs = await Log.find({ application: applicationId }).select('weekNumber');
+    const existingWeeks = new Set(existingLogs.map(l => l.weekNumber));
+
+    // Create only missing placeholders
+    const logs = [];
+    for (let i = 1; i <= totalWeeks; i++) {
+        if (!existingWeeks.has(i)) {
+            logs.push({
+                student: application.student,
+                application: applicationId,
+                weekNumber: i,
+                status: 'pending_student',
+                tasksPerformed: '',
+                assignedTasks: ''
+            });
+        }
+    }
+
+    if (logs.length === 0) {
+        return next(new AppError('All weeks in this range already exist. No new logs created.', 400));
+    }
+
+    const createdLogs = await Log.insertMany(logs);
+
+    res.status(201).json({
+        status: 'success',
+        message: `${createdLogs.length} new week(s) added successfully`,
+        data: { logs: createdLogs }
     });
 });
