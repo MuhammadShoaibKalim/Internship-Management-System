@@ -60,27 +60,36 @@ graph TD
     subgraph "Phase 1: Entry [COMPLETED]"
     ST[Student Registers] --> VS{Vetting Sync}
     IN[Industry Submits Profile] --> AD[Admin Approves]
+    AD -.->|Real-time Alert| IN
     end
 
     subgraph "Phase 2: Matching [COMPLETED]"
     VS -->|Verified| HUB[Internship Hub]
     HUB --> APPLY[Application Logic]
+    APPLY -.->|Notification| Industry[Industry Alert]
     APPLY -->|Auto-Check| ELIG{Eligible?}
     ELIG -->|Yes| SUP_VET[Supervisor Endorsement]
+    SUP_VET -.->|Notification| ST
     SUP_VET -->|Endorsed| VET[Industry Review]
     ELIG -->|No| REJ[Fail Feedback]
     end
 
     subgraph "Phase 3: Lifecycle [COMPLETED]"
     VET --> HIRED[Internship Starts]
+    HIRED -.->|Notification| ST
     HIRED --> LOGS[Student Submits Logs]
+    LOGS -.->|Alert| Industry
+    LOGS -.->|Alert| Supervisor
     LOGS --> SUP[Supervisor Reviews & Grades]
     LOGS --> MNT[Industry Mentor Reviews & Rates]
+    MNT -.->|Notification| ST
     end
 
     subgraph "Phase 4: Completion [COMPLETED]"
     MNT --> EVAL[Industry Evaluation + Certificate]
+    EVAL -.->|Alert| ST
     EVAL -->|Sync| SUP_MARK[Supervisor Final Marking]
+    SUP_MARK -.->|Final Result Alert| ST
     SUP_MARK --> RESULT[Unified Student Result]
     RESULT --> COMP[Digital Certificate Issued]
     end
@@ -93,21 +102,21 @@ graph TD
 Use this sequence to verify the **Full Professional Lifecycle**:
 
 ### Phase 1: Identity & Setup
-*   **Admins**: Approve Industry Partners in the "Verify Industry" portal.
+*   **Admins**: Approve Industry Partners. (Industry receives **Account Verified Alert**).
 *   **Industry**: Post an internship once approved.
 
 ### Phase 2: The Placement Journey
-1.  **Student**: Apply to an internship from the **Hub**.
-2.  **Supervisor**: Go to **Pending Applications** -> **ENDORSE** (Academic Vetting).
-3.  **Industry**: Go to **Applicants** -> View Endorsed Candidates -> **HIRE/SELECT**.
+1.  **Student**: Apply to an internship. (Industry receives **Application Alert**).
+2.  **Supervisor**: Go to **Pending Applications** -> **ENDORSE**. (Student receives **Endorsement Alert**).
+3.  **Industry**: Go to **Applicants** -> View Endorsed Candidates -> **HIRE/SELECT**. (Student receives **Placement Confirmed Alert**).
 
 ### Phase 3: Monitoring & Lifecycle
-1.  **Student**: Submit **Weekly Logs** documenting activities and learning.
-2.  **Industry**: Visit **Log Monitoring** -> View student logs -> **Rate / Review** (Professional Feedback).
-3.  **Supervisor**: Visit **Student Logs** -> Review & Give academic marks.
-4.  **Industry**: Once duration ends, visit **Evaluations** -> Submit a `Final` period evaluation and **Upload Certificate**.
-3.  **Supervisor**: Visit **Final Marking** -> Select Student. (Industry GPA and feedback are now **Auto-Synced**). Submit final academic marks.
-4.  **Student**: Visit **Results** to see the unified grade card and visit **Certifications** to find the issued certificate.
+1.  **Student**: Submit **Weekly Logs**. (Industry/Supervisor receive **Submission Alert**).
+2.  **Industry**: Visit **Log Monitoring** -> **Rate / Review**. (Student receives **Feedback Alert**).
+3.  **Supervisor**: Visit **Student Logs** -> Review & Give marks.
+4.  **Industry**: Visit **Evaluations** -> Submit `Final` assessment. (Student receives **Performance Audit Alert**).
+5.  **Supervisor**: Visit **Final Marking** -> Select Student -> Publish. (Student receives **Result Published Alert**).
+6.  **All Users**: Check the **Notification Dropdown** in the header for the full persistent history of these alerts.
 
 ---
 
