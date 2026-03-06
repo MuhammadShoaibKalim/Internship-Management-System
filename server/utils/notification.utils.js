@@ -1,11 +1,12 @@
 import Notification from '../models/notification.model.js';
 
-export const createNotification = async ({ type, message, recipient = 'admin', relatedUser, priority = 'medium' }) => {
+export const createNotification = async ({ type, message, recipientRole, user, relatedUser, priority = 'medium' }) => {
     try {
         await Notification.create({
             type,
             message,
-            recipient,
+            recipientRole,
+            user,
             relatedUser,
             priority
         });
