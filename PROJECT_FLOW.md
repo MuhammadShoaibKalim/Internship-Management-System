@@ -23,96 +23,100 @@ The project follows a **MERN Stack** (MongoDB, Express, React, Node) architectur
 
 ---
 
-## 👥 2. Role-Based "User Journeys"
+## 👥 2. Role-Based "User Journeys" [STATUS: COMPLETED]
 
-There are **4 distinct flows** in the project. Here is how they work:
-
-### **A. The Student Flow (The Applicant)**
+### **A. The Student Flow**
 1. **Registration**: Student signs up with their academic details (CGPA, Department).
 2. **Browsing**: Enters the **Internship Hub** to see all active postings.
-3. **Application**: The system runs a **Pre-Vetting Check**:
-    - *If (Student.CGPA >= Requirement.MinCGPA)* -> Forward application.
-    - *If (Failed Courses == 0)* -> Forward application.
+3. **Application**: The system runs a **Pre-Vetting Check** on CGPA and eligibility.
 4. **Tracking**: Once hired, the student's dashboard shows a **Progression Bar** (e.g., 75% complete).
 5. **Reporting**: Submits **Weekly Logs** which are instantly visible to their mentors.
+6. **Graduation**: Views final results and downloads the **Digital Certificate** from the "My Certifications" portal.
 
-### **B. The Industry Flow (The Provider)**
+### **B. The Industry Flow**
 1. **Onboarding**: Submits company profile for **Admin Approval**.
 2. **Posting**: Creates a "Node" (Job Post) with specific requirements.
-3. **Vetting**: Reviews student applications, certificates, and CVs.
+3. **Vetting**: Reviews student applications, certificates, and CVs once endorsed by a supervisor.
 4. **Action**: Hires or Rejects students.
-5. **Evaluation**: Provides professional feedback at the end of the internship.
+5. **Evaluation**: Provides professional feedback and uploads the **Completion Certificate** at the end of the internship.
 
-### **C. The Supervisor Flow (The Academic Monitor)**
+### **C. The Supervisor Flow**
 1. **Monitoring**: Sees a list of all students assigned to them in the **Registry**.
 2. **Reviewing**: Reads students' weekly logs to ensure they are learning relevant skills.
-3. **Site Visits**: Schedules a physical visit to the company to verify the student is actually there.
-4. **Grading**: Finalizes the academic marks based on logs and industry feedback.
+3. **Site Visits**: Schedules a physical visit to the company to verify the student's progress.
+4. **Grading**: Finalizes academic marks based on logs and **Auto-Synced Industry Feedback**.
 
-### **D. The Root Admin Flow (The Controller)**
+### **D. The Root Admin Flow**
 1. **System Health**: Monitors CPU load, DB consistency, and "Telemetry" via the Dashboard.
-2. **User Management**: Can edit, block, or delete any user role.
-3. **Industry Vetting**: The "Gatekeeper" who approves new companies to join the platform.
+2. **User Management**: Full control to edit, block, or delete any user role.
+3. **Industry Vetting**: Approves new companies to join the platform.
 
 ---
 
-## 🔄 3. System Visualization (The Flowchart)
+## 🔄 3. System Visualization (The Lifecycle)
 
 ```mermaid
 graph TD
-    subgraph "Phase 1: Entry"
+    subgraph "Phase 1: Entry [COMPLETED]"
     ST[Student Registers] --> VS{Vetting Sync}
     IN[Industry Submits Profile] --> AD[Admin Approves]
     end
 
-    subgraph "Phase 2: Matching"
+    subgraph "Phase 2: Matching [COMPLETED]"
     VS -->|Verified| HUB[Internship Hub]
     HUB --> APPLY[Application Logic]
     APPLY -->|Auto-Check| ELIG{Eligible?}
-    ELIG -->|Yes| VET[Industry Review]
+    ELIG -->|Yes| SUP_VET[Supervisor Endorsement]
+    SUP_VET -->|Endorsed| VET[Industry Review]
     ELIG -->|No| REJ[Fail Feedback]
     end
 
-    subgraph "Phase 3: Lifecycle"
+    subgraph "Phase 3: Lifecycle [COMPLETED]"
     VET --> HIRED[Internship Starts]
     HIRED --> LOGS[Student Submits Logs]
-    LOGS --> SUP[Supervisor Reviews]
-    LOGS --> MNT[Industry Mentor Reviews]
+    LOGS --> SUP[Supervisor Reviews & Grades]
+    LOGS --> MNT[Industry Mentor Reviews & Rates]
     end
 
-    subgraph "Phase 4: Completion"
-    SUP --> MARK[Final Grading]
-    MNT --> EVAL[Professional Evaluation]
-    MARK & EVAL --> COMP[Internship Completed]
+    subgraph "Phase 4: Completion [COMPLETED]"
+    MNT --> EVAL[Industry Evaluation + Certificate]
+    EVAL -->|Sync| SUP_MARK[Supervisor Final Marking]
+    SUP_MARK --> RESULT[Unified Student Result]
+    RESULT --> COMP[Digital Certificate Issued]
     end
 ```
 
 ---
 
-## 🎨 4. Design Concepts (Why it feels "Premium")
+## 🧪 4. End-to-End Professional Flow (Testing Steps)
 
-We used specific concepts to make this more than just a regular portal:
+Use this sequence to verify the **Full Professional Lifecycle**:
 
-1. **Glassmorphism**: Using `bg-white/80` and `backdrop-blur-md` for panels to give a modern, depth-filled feel.
-2. **Micro-Animations**: 
-    - `hover:rotate-12` on icons to make them feel playful.
-    - `animate-fade-in` on every page load for a smooth entrance.
-    - `hover:-translate-y-1` on cards to indicate interactivity.
-3. **Visual Consistency**:
-    - **Uniform Spacing**: `space-y-10` and `pb-12` are global standards.
-    - **Header Logic**: Dashboard headers use "Pill" labels (e.g., "Student Portal") for instant role identification.
-4. **The "Lack-Free" UI**:
-    - By using `LoadingBar` and `ScrollToTop`, we eliminate the "jumpiness" usually felt in single-page applications.
+### Phase 1: Identity & Setup
+*   **Admins**: Approve Industry Partners in the "Verify Industry" portal.
+*   **Industry**: Post an internship once approved.
+
+### Phase 2: The Placement Journey
+1.  **Student**: Apply to an internship from the **Hub**.
+2.  **Supervisor**: Go to **Pending Applications** -> **ENDORSE** (Academic Vetting).
+3.  **Industry**: Go to **Applicants** -> View Endorsed Candidates -> **HIRE/SELECT**.
+
+### Phase 3: Monitoring & Lifecycle
+1.  **Student**: Submit **Weekly Logs** documenting activities and learning.
+2.  **Industry**: Visit **Log Monitoring** -> View student logs -> **Rate / Review** (Professional Feedback).
+3.  **Supervisor**: Visit **Student Logs** -> Review & Give academic marks.
+4.  **Industry**: Once duration ends, visit **Evaluations** -> Submit a `Final` period evaluation and **Upload Certificate**.
+3.  **Supervisor**: Visit **Final Marking** -> Select Student. (Industry GPA and feedback are now **Auto-Synced**). Submit final academic marks.
+4.  **Student**: Visit **Results** to see the unified grade card and visit **Certifications** to find the issued certificate.
 
 ---
 
-## 📂 5. Key File Structure
+## 🎨 5. Design Concepts (Premium UI)
 
-- `/client/src/App.jsx`: The **Routing Center**. Defines every role's access path.
-- `/client/src/components/layout/`: Holds the **Shells** for each user role.
-- `/client/src/pages/dashboard/`: Contains the **Command Centers** for all 4 roles.
-- `/client/src/pages/hub/`: The main internship browsing logic.
-- `/client/src/index.css`: The **Design Tokens** (Colors, Shadows, Custom Scrollbars).
+1. **Glassmorphism**: Using `backdrop-blur-md` for panels to give a modern, depth-filled feel.
+2. **Micro-Animations**: `hover:rotate-12` on icons and `animate-fade-in` on layout transitions.
+3. **Visual Consistency**: Uniform spacing standards (`space-y-10`) and "Pill" headers for role identification.
+4. **Zero-Lag UI**: Integrated `LoadingBar` and `ScrollToTop` for a seamless SPA experience.
 
 ---
 
