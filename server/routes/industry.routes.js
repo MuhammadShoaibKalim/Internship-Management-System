@@ -9,9 +9,11 @@ import {
     updateApplicantStatus,
     getActiveInterns,
     submitEvaluation,
-    getEvaluations
+    getEvaluations,
+    initializeInternshipPlan
 } from '../controllers/industry.controller.js';
 import { protect, restrictTo } from '../middleware/auth.middleware.js';
+import { uploadCertificateFile } from '../utils/upload.utils.js';
 
 const router = express.Router();
 
@@ -40,6 +42,8 @@ router.get('/interns', getActiveInterns);
 // Evaluations
 router.route('/evaluations')
     .get(getEvaluations)
-    .post(submitEvaluation);
+    .post(uploadCertificateFile, submitEvaluation);
+
+router.post('/initialize-plan', initializeInternshipPlan);
 
 export default router;
