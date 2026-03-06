@@ -42,6 +42,7 @@ The system is architected around four distinct "Nodes," each with a specialized 
 ### 🛡️ Root Admin Node
 - **Global Control**: Full oversight of system telemetry and user management.
 - **Vetting Hub**: Manual verification of Industry Partners to ensure platform integrity.
+- **Real-time Notifications**: Global system alert engine for cross-role communication.
 - **Data Integrity**: Global reporting and system-wide configuration management.
 
 ---
@@ -67,19 +68,20 @@ The system is architected around four distinct "Nodes," each with a specialized 
 ## 🔄 Complete Professional Flow (Step-by-Step)
 
 ### 🚀 Phase 1: Identity & Setup
-**Student / Industry / Supervisor** -> **Register** -> **Verify OTP** (Check Server Console) -> **Active Account**
-> *Note: Industry Partners must be **Approved by Admin** before posting.*
+**Student / Industry / Supervisor** -> **Register** -> **Verify OTP** -> **Active Account**
+> *Note: Industry Partners receive a **Verified Notification** once approved by Admin.*
 
 ### 🛠️ Phase 2: The Placement Journey
-**Industry** -> **Post Internship** -> **Visible in Hub**
-**Student** -> **Browse Hub** -> **Apply** -> (Status: `applied`)
-**Supervisor** -> **Review Student Record** -> **ENDORSE APPLICATION** -> (Status: `supervisor_endorsed`)
-**Industry** -> **View Endorsed Candidates** -> **HIRE / SELECT** -> (Status: `industry_selected`)
+1. **Industry** -> **Post Internship** -> **Visible in Hub**
+2. **Student** -> **Apply** -> (Industry receives **Real-time Alert**)
+3. **Supervisor** -> **Endorse** -> (Student receives **Status Update Notification**)
+4. **Industry** -> **Hire** -> (Student receives **Hiring Notification**)
 
 ### 🎓 Phase 3: Monitoring & Graduation
-**Student** -> **Submit Weekly Logs** -> **Supervisor Reviews Logs**
-**Internship End** -> **Industry Evaluates Intern** -> **Supervisor Completes Final Marking**
-**Result** -> **Application Completed** (Status: `completed`)
+1. **Student** -> **Submit Weekly Logs** -> (Supervisor & Industry receive **Submission Alerts**)
+2. **Mentors** -> **Review Logs** -> (Student receives **Grading Notification**)
+3. **End of Term** -> **Assessments Published** -> (Student receives **Final Result Alert**)
+4. **Result** -> **Application Completed** (Status: `completed`)
 
 ---
 
