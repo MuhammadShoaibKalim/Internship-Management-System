@@ -6,7 +6,6 @@ import crypto from 'crypto';
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, 'Please provide your name'],
         trim: true,
         maxLength: [50, 'Name cannot exceed 50 characters']
     },
@@ -78,6 +77,17 @@ const userSchema = new mongoose.Schema({
             uploadedAt: { type: Date, default: Date.now }
         }
     ],
+    skills: {
+        type: [String],
+        default: []
+    },
+    academicDetails: {
+        rollNumber: String,
+        department: String,
+        semester: String,
+        cgpa: String,
+        university: String
+    },
     bookmarks: [
         {
             type: mongoose.Schema.ObjectId,
@@ -98,8 +108,23 @@ const userSchema = new mongoose.Schema({
 
     // Role-specific Metadata
     studentMeta: {
-        universityId: { type: String, unique: true, sparse: true },
-        cgpa: Number,
+        universityId: {
+            type: String,
+            unique: true,
+            sparse: true,
+            validate: {
+                validator: function (val) {
+                    // Only enforce pattern if it looks like a university ID (starts with bsf or mt)
+                    if (/^(bsf|mt)/i.test(val)) {
+                        return /^(bsf|mt)\d{7}$/i.test(val);
+                    }
+                    // Allow other strings (like Gmail prefixes) for now
+                    return true;
+                },
+                message: 'University ID must follow the pattern: bsf/mt followed by 7 digits (e.g., bsf2100926)'
+            }
+        },
+        gpa: Number,
         failedCourses: { type: Number, default: 0 },
         department: String,
         supervisor: {
@@ -162,6 +187,19 @@ userSchema.pre('save', async function (next) {
 userSchema.pre('save', function (next) {
     if (!this.isModified('password') || this.isNew) return next();
     this.passwordChangedAt = Date.now() - 1000;
+    next();
+});
+
+// Synchronize Student Department (Academic vs Meta)
+userSchema.pre('save', function (next) {
+    if (this.role === 'student') {
+        // Preference to academicDetails if modified, otherwise sync both ways
+        if (this.academicDetails?.department) {
+            this.studentMeta.department = this.academicDetails.department;
+        } else if (this.studentMeta?.department) {
+            this.academicDetails.department = this.studentMeta.department;
+        }
+    }
     next();
 });
 
