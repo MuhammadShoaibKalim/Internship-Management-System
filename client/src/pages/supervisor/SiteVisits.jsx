@@ -1,16 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, Clock, User, Phone, CheckCircle2, ArrowLeft, ArrowRight, Plus, Map, Loader2, AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import API from '../../services/api';
+import SectionHeader from '../../components/common/SectionHeader';
 
 const SiteVisits = () => {
+    const [searchParams] = useSearchParams();
+    const preselectedStudent = searchParams.get('student');
+
     const [visits, setVisits] = useState([]);
+    const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showModal, setShowModal] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+
+    const [formData, setFormData] = useState({
+        student: preselectedStudent || '',
+        plannedDate: '',
+        plannedTime: '',
+        notes: ''
+    });
 
     useEffect(() => {
         fetchVisits();
-    }, []);
+        fetchStudents();
+        if (preselectedStudent) setShowModal(true);
+    }, [preselectedStudent]);
+
+    const fetchStudents = async () => {
+        try {
+            const response = await API.get('/supervisor/students');
+            if (response.data.status === 'success') {
+                setStudents(response.data.data.students || []);
+            }
+        } catch (err) {
+            console.error('Failed to load students:', err);
+        }
+    };
 
     const fetchVisits = async () => {
         try {
@@ -27,22 +55,44 @@ const SiteVisits = () => {
         }
     };
 
+    const handleSchedule = async (e) => {
+        e.preventDefault();
+        try {
+            setSubmitting(true);
+            const response = await API.post('/supervisor/visits', formData);
+            if (response.data.status === 'success') {
+                toast.success('Site visit scheduled successfully');
+                setShowModal(false);
+                setFormData({ student: '', plannedDate: '', plannedTime: '', notes: '' });
+                fetchVisits();
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to schedule visit');
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     return (
         <div className="space-y-8 animate-fade-in pb-12">
-            {/* Header omitted */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <Link to="/dashboard/supervisor" className="flex items-center gap-2 text-slate-400 hover:text-primary-600 font-bold text-[10px] uppercase tracking-widest mb-2 no-underline transition-colors group">
-                        <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-                        Back to Dashboard
-                    </Link>
-                    <h1 className="text-3xl font-black text-secondary-900 tracking-tight">On-site Visits</h1>
-                    <p className="text-slate-500 font-medium italic">Schedule and monitor physical industry inspections and student evaluations.</p>
-                </div>
-                <button className="btn-primary py-4 px-8 flex items-center gap-3 text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-primary-100">
-                    <Plus size={18} /> Schedule New Visit
+            <SectionHeader
+                title="Site Visits"
+                subtitle="Supervisor Sub-Page"
+                description="Student Site Visit Schedule"
+                icon={ArrowLeft}
+                linkTo="/dashboard/supervisor"
+                linkText="Back to Dashboard"
+                gradientFrom="from-primary-600"
+                gradientTo="to-indigo-600"
+            >
+                <button
+                    onClick={() => setShowModal(true)}
+                    className="btn-premium py-5 px-10 flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.3em] shadow-4xl shadow-primary-500/20 group hover:scale-105 active:scale-95 transition-all duration-500 italic"
+                >
+                    <Plus size={20} className="group-hover:rotate-90 transition-transform duration-500 text-primary-200" />
+                    Schedule New Visit
                 </button>
-            </div>
+            </SectionHeader>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Visits List */}
@@ -52,9 +102,9 @@ const SiteVisits = () => {
                     </h3>
 
                     {loading ? (
-                        <div className="portal-card p-20 flex flex-col items-center justify-center space-y-4">
-                            <Loader2 className="w-12 h-12 text-primary-600 animate-spin" />
-                            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Syncing Itinerary Nodes...</p>
+                        <div className="glass-card p-32 flex flex-col items-center justify-center space-y-6 bg-white/40 border-dashed border-2 border-slate-200 rounded-[3rem]">
+                            <Loader2 className="w-16 h-16 text-primary-600 animate-spin" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 italic">Loading Visit Schedule...</p>
                         </div>
                     ) : error ? (
                         <div className="p-12 text-center bg-rose-50 rounded-[2.5rem] border border-rose-100 space-y-4">
@@ -65,41 +115,65 @@ const SiteVisits = () => {
                         <div className="space-y-4">
                             {visits.length > 0 ? (
                                 visits.map(visit => (
-                                    <div key={visit._id} className={`portal-card p-6 bg-white group hover:shadow-2xl transition-all border-l-8 ${visit.status === 'upcoming' ? 'border-l-primary-500' : 'border-l-emerald-500 opacity-75'}`}>
-                                        <div className="flex flex-col md:flex-row justify-between gap-6">
-                                            <div className="space-y-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${visit.status === 'upcoming' ? 'bg-primary-50 text-primary-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                        {visit.status === 'upcoming' ? <Clock size={20} /> : <CheckCircle2 size={20} />}
+                                    <div key={visit._id} className={`glass-card p-10 bg-white/60 border-l-[12px] group transition-all duration-700 hover:shadow-4xl hover:shadow-primary-500/10 rounded-[3rem] overflow-hidden relative ${visit.status === 'upcoming' ? 'border-l-primary-500' : 'border-l-emerald-500 opacity-75'}`}>
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-primary-500/10 transition-all duration-1000"></div>
+
+                                        <div className="flex flex-col md:flex-row justify-between gap-10 relative z-10">
+                                            <div className="space-y-6 flex-1">
+                                                <div className="flex items-center gap-5">
+                                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-xl ring-4 ring-white ${visit.status === 'upcoming' ? 'bg-primary-50 text-primary-600' : 'bg-emerald-50 text-emerald-600'} group-hover:scale-110 transition-transform duration-500`}>
+                                                        {visit.status === 'upcoming' ? <Clock size={24} /> : <CheckCircle2 size={24} />}
                                                     </div>
-                                                    <div>
-                                                        <h4 className="font-bold text-secondary-900 text-lg leading-tight truncate max-w-[250px]">{visit.industry?.name || 'Industry Node'}</h4>
-                                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Date(visit.plannedDate).toLocaleDateString()} • {visit.plannedTime}</p>
+                                                    <div className="space-y-1">
+                                                        <h4 className="text-2xl font-black text-slate-900 leading-none uppercase tracking-tighter italic truncate max-w-[300px]">{visit.industry?.name || visit.industry?.companyName || 'Corporate Sector'}</h4>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-2 h-2 rounded-full animate-pulse ${visit.status === 'upcoming' ? 'bg-primary-500' : 'bg-emerald-500'}`}></div>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] italic">{new Date(visit.plannedDate).toLocaleDateString()} • {visit.plannedTime}</p>
+                                                        </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-                                                    <div className="flex items-start gap-3">
-                                                        <MapPin size={16} className="text-slate-300 mt-0.5" />
-                                                        <p className="text-xs font-bold text-slate-500 leading-relaxed truncate max-w-[200px]">{visit.industry?.address || 'Site Address Unavailable'}</p>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 p-6 bg-white/80 rounded-[2rem] border border-slate-100 shadow-sm group-hover:bg-white transition-all duration-500">
+                                                    <div className="space-y-2">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] italic flex items-center gap-2"><MapPin size={12} /> Visit Location</p>
+                                                        <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight italic leading-tight truncate">{visit.industry?.address || 'Site Address Redacted'}</p>
                                                     </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <User size={16} className="text-slate-300" />
-                                                        <p className="text-xs font-bold text-slate-500">Student: {visit.student?.name}</p>
+                                                    <div className="space-y-2">
+                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] italic flex items-center gap-2"><User size={12} /> Assigned Student</p>
+                                                        <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight italic truncate pr-2">{visit.student?.name}</p>
                                                     </div>
                                                 </div>
                                             </div>
 
-                                            <div className="flex flex-col justify-between items-end gap-4 text-right">
-                                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${visit.status === 'upcoming' ? 'bg-primary-50 text-primary-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                            <div className="flex flex-col justify-between items-end gap-6">
+                                                <div className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.3em] shadow-sm border ${visit.status === 'upcoming' ? 'bg-primary-50 text-primary-600 border-primary-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                                                     {visit.status}
-                                                </span>
-                                                <div className="flex items-center gap-2">
-                                                    <button className="p-3 bg-slate-50 text-slate-400 hover:text-primary-600 rounded-xl transition-all active:scale-95">
-                                                        <Phone size={18} />
-                                                    </button>
-                                                    <button className="btn-primary py-3 px-6 text-[10px] font-black uppercase tracking-widest active:scale-95 shadow-lg shadow-primary-50">
-                                                        View Details
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    {visit.status === 'upcoming' ? (
+                                                        <button
+                                                            onClick={async () => {
+                                                                try {
+                                                                    const res = await API.patch(`/supervisor/visits/${visit._id}`, { status: 'completed' });
+                                                                    if (res.data.status === 'success') {
+                                                                        toast.success('Visit marked as completed');
+                                                                        fetchVisits();
+                                                                    }
+                                                                } catch (err) {
+                                                                    toast.error('Failed to update visit status');
+                                                                }
+                                                            }}
+                                                            className="btn-premium from-primary-600 to-indigo-600 py-4 px-8 text-[10px] font-black uppercase tracking-[0.3em] italic active:scale-95 shadow-lg shadow-primary-200 transition-all"
+                                                        >
+                                                            Mark Completed
+                                                        </button>
+                                                    ) : (
+                                                        <button className="py-4 px-8 bg-slate-900 text-primary-400 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] italic border border-slate-800 shadow-inner flex items-center gap-3">
+                                                            <CheckCircle2 size={16} className="text-emerald-400" /> Evaluated
+                                                        </button>
+                                                    )}
+                                                    <button className="p-4 bg-white border-2 border-slate-100 text-slate-400 hover:text-primary-600 hover:bg-primary-50 hover:border-primary-100 rounded-2xl transition-all duration-500 group/btn active:scale-90 shadow-sm">
+                                                        <Phone size={20} className="mx-auto group-hover/btn:scale-110 transition-transform duration-500" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -107,96 +181,149 @@ const SiteVisits = () => {
                                     </div>
                                 ))
                             ) : (
-                                <div className="p-12 text-center bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200">
-                                     <p className="text-sm font-bold text-slate-400 italic">No site visits scheduled in the local itinerary.</p>
+                                <div className="glass-card p-32 flex flex-col items-center justify-center text-center space-y-6 bg-white/40 border-dashed border-2 border-slate-200 rounded-[3rem] group">
+                                    <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center text-slate-200 shadow-xl group-hover:scale-110 transition-transform duration-700 border border-slate-100 relative">
+                                        <div className="absolute inset-0 bg-primary-500/5 rounded-[2rem] animate-pulse"></div>
+                                        <Map size={40} className="relative z-10" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h3 className="text-xl font-black text-slate-900 uppercase tracking-tighter italic">No Visits Scheduled</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 italic max-w-xs mx-auto">No upcoming or past site visits found.</p>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     )}
                 </div>
 
-                {/* Map/Context Panel omitted */}
-                <div className="space-y-6">
-                    <h3 className="text-sm font-black text-secondary-900 uppercase tracking-widest flex items-center gap-2">
-                        <Map size={18} className="text-primary-500" /> Map Preview
-                    </h3>
-                    <div className="portal-card aspect-square bg-slate-100 rounded-[3rem] overflow-hidden relative border-8 border-white shadow-inner flex flex-col items-center justify-center text-slate-400 gap-4">
-                        <div className="absolute inset-0 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=Karachi&zoom=11&size=600x600&sensor=false')] bg-cover opacity-20"></div>
-                        <MapPin size={48} className="animate-bounce" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">Interactive Map Initializing</p>
-                    </div>
-
-                    <div className="portal-card p-6 bg-secondary-900 text-white border-none space-y-4">
-                        <h4 className="font-bold text-sm flex items-center gap-2 capitalize">
-                            <ShieldAlert size={16} className="text-amber-400" /> Supervisor Protocol
-                        </h4>
-                        <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">
-                            Site visits are mandatory for at least 30% of your assigned students. Ensure you carry your official faculty identification and evaluation forms.
-                        </p>
-                        <button className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95">
-                            Download Official Form
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bottom Nav */}
-            <div className="pt-8 flex justify-center">
-                <Link to="/dashboard/supervisor/marking" className="group flex items-center gap-4 text-slate-400 hover:text-primary-600 font-black text-[10px] uppercase tracking-widest no-underline transition-all">
-                    Proceed to Final Marking Assessment
-                    <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
-                </Link>
-            </div>
-        </div>
-    );
-};
-
-// Use Lucide ShieldAlert in this scope
-const ShieldAlert = ({ size, className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
-);
-
-export default SiteVisits;
-
                 {/* Map/Context Panel */}
                 <div className="space-y-6">
                     <h3 className="text-sm font-black text-secondary-900 uppercase tracking-widest flex items-center gap-2">
-                        <Map size={18} className="text-primary-500" /> Map Preview
+                        <Map size={18} className="text-primary-500" /> Monitoring Context
                     </h3>
-                    <div className="portal-card aspect-square bg-slate-100 rounded-[3rem] overflow-hidden relative border-8 border-white shadow-inner flex flex-col items-center justify-center text-slate-400 gap-4">
-                        <div className="absolute inset-0 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=Karachi&zoom=11&size=600x600&sensor=false')] bg-cover opacity-20"></div>
-                        <MapPin size={48} className="animate-bounce" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">Interactive Map Initializing</p>
+                    <div className="glass-card aspect-square bg-slate-900 border-[12px] border-white rounded-[4rem] overflow-hidden relative shadow-4xl group">
+                        <div className="absolute inset-0 bg-[url('https://maps.googleapis.com/maps/api/staticmap?center=Karachi&zoom=11&size=600x600&sensor=false')] bg-cover opacity-30 grayscale contrast-125 group-hover:scale-110 transition-transform duration-[3000ms]"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
+                        <div className="relative z-10 h-full flex flex-col items-center justify-center text-primary-400 gap-6">
+                            <MapPin size={64} className="animate-bounce drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.5em] italic text-center px-12 leading-relaxed">Evaluation Node Tracking Active</p>
+                        </div>
                     </div>
 
-                    <div className="portal-card p-6 bg-secondary-900 text-white border-none space-y-4">
-                        <h4 className="font-bold text-sm flex items-center gap-2">
-                            <ShieldAlert size={16} className="text-amber-400" /> Supervisor Protocol
-                        </h4>
-                        <p className="text-[10px] text-slate-400 font-medium leading-relaxed italic">
-                            Site visits are mandatory for at least 30% of your assigned students. Ensure you carry your official faculty identification and evaluation forms.
+                    <div className="glass-card p-10 bg-slate-900 text-white border-slate-800 rounded-[3rem] space-y-8 relative overflow-hidden group shadow-4xl shadow-slate-900/40">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary-500 to-transparent"></div>
+                        <div className="space-y-3">
+                            <h4 className="text-lg font-black flex items-center gap-4 italic uppercase tracking-tighter">
+                                <ShieldAlert size={24} className="text-amber-400 group-hover:scale-110 transition-transform duration-500" />
+                                Protocol Guide
+                            </h4>
+                            <div className="h-0.5 w-12 bg-primary-500 rounded-full"></div>
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-black tracking-tight leading-relaxed italic pr-4">
+                            Site visits facilitate objective verification of internship deliverables. Ensure the on-site supervisor confirms student attendance.
                         </p>
-                        <button className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
-                            Download Official Form
+                        <button className="w-full py-5 bg-white/5 hover:bg-primary-600 text-slate-300 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-500 active:scale-95 italic border border-white/10 group-hover:border-primary-500">
+                            Download Protocol PDF
                         </button>
                     </div>
                 </div>
             </div>
 
             {/* Bottom Nav */}
-            <div className="pt-8 flex justify-center">
-                <Link to="/dashboard/supervisor/marking" className="group flex items-center gap-4 text-slate-400 hover:text-primary-600 font-black text-[10px] uppercase tracking-widest no-underline transition-all">
-                    Proceed to Final Marking Assessment
-                    <ArrowRight size={16} className="group-hover:translate-x-2 transition-transform" />
+            <div className="pt-16 flex justify-center border-t border-slate-100 mt-12">
+                <Link to="/dashboard/supervisor/marking" className="group flex items-center gap-5 text-slate-400 hover:text-primary-600 font-black text-[11px] uppercase tracking-[0.4em] no-underline transition-all italic">
+                    Final Assessment & Grading
+                    <ArrowRight size={20} className="group-hover:translate-x-3 transition-transform duration-700" />
                 </Link>
             </div>
+
+            {/* Scheduling Modal */}
+            {showModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-fade-in">
+                    <div className="bg-white w-full max-w-xl rounded-[3rem] shadow-4xl overflow-hidden animate-slide-up">
+                        <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                            <div>
+                                <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Schedule Site Visit</h3>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Coordinate industry monitoring session</p>
+                            </div>
+                            <button onClick={() => setShowModal(false)} className="p-3 bg-white text-slate-300 hover:text-rose-500 rounded-2xl shadow-xl transition-all">
+                                <X size={24} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleSchedule} className="p-10 space-y-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Assigned Student</label>
+                                <select
+                                    className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-3xl text-sm font-black outline-none transition-all appearance-none"
+                                    value={formData.student}
+                                    onChange={(e) => setFormData({ ...formData, student: e.target.value })}
+                                    required
+                                >
+                                    <option value="">Select Student...</option>
+                                    {students.map(s => (
+                                        <option key={s._id} value={s._id}>{s.name} ({s.studentMeta?.universityId})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-8">
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Scheduled Date</label>
+                                    <input
+                                        type="date"
+                                        className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-3xl text-sm font-black outline-none transition-all"
+                                        value={formData.plannedDate}
+                                        onChange={(e) => setFormData({ ...formData, plannedDate: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Scheduled Time</label>
+                                    <input
+                                        type="time"
+                                        className="w-full px-8 py-5 bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-3xl text-sm font-black outline-none transition-all"
+                                        value={formData.plannedTime}
+                                        onChange={(e) => setFormData({ ...formData, plannedTime: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Visit Objectives / Notes</label>
+                                <textarea
+                                    className="w-full px-8 py-6 bg-slate-50 border-2 border-transparent focus:border-slate-900 focus:bg-white rounded-3xl text-sm font-black outline-none transition-all resize-none h-32"
+                                    placeholder="Briefly describe the purpose of the visit..."
+                                    value={formData.notes}
+                                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black uppercase tracking-[0.4em] text-[10px] shadow-3xl shadow-slate-200 hover:scale-[1.01] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4 transition-all"
+                            >
+                                {submitting ? <Loader2 size={20} className="animate-spin" /> : <ShieldCheck size={20} className="text-emerald-400" />}
+                                Confirm Itinerary
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
 
-// Use Lucide ShieldAlert in this scope
+// Use Lucide icons
 const ShieldAlert = ({ size, className }) => (
     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+);
+const X = ({ size, className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+);
+const ShieldCheck = ({ size, className }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /><path d="m9 12 2 2 4-4" /></svg>
 );
 
 export default SiteVisits;
