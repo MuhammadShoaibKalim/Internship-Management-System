@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ShieldCheck, ArrowRight, RefreshCw, Loader2 } from 'lucide-react';
 import API from '../../services/api';
@@ -61,16 +62,16 @@ const VerifyOTP = () => {
             });
 
             if (response.data.status === 'success') {
-                const { token, data } = response.data;
-                localStorage.setItem('token', token);
-                localStorage.setItem('user', JSON.stringify(data.user));
-
-                // Redirect based on role
-                const role = data.user.role;
-                navigate(`/dashboard/${role}`);
+                toast.success('Account verified successfully!');
+                // Redirect to login with success message
+                navigate('/auth/login', {
+                    state: { message: 'Account verified successfully! Please sign in to continue.' }
+                });
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Invalid or expired OTP');
+            const msg = err.response?.data?.message || 'Invalid or expired OTP';
+            setError(msg);
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
