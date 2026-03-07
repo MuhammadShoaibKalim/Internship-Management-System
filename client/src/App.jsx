@@ -20,6 +20,13 @@ import RoleBasedRedirect from './components/auth/RoleBasedRedirect';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import GuestRoute from './components/auth/GuestRoute';
 import NotFound from './pages/NotFound';
+import PublicLayout from './components/layout/PublicLayout';
+import LandingPage from './pages/public/LandingPage';
+import BlogList from './pages/public/BlogList';
+import BlogDetail from './pages/public/BlogDetail';
+import PrivacyPolicy from './pages/public/PrivacyPolicy';
+import TermsOfService from './pages/public/TermsOfService';
+import Documentation from './pages/public/Documentation';
 
 // Dashboard Components
 import StudentDashboard from './pages/dashboard/StudentDashboard';
@@ -93,8 +100,17 @@ const App = () => {
         }}
       />
       <Routes>
-        {/* Root Redirect based on Role */}
-        <Route path="/" element={<RoleBasedRedirect />} />
+        {/* Public Routes */}
+        <Route path="/" element={<PublicLayout><LandingPage /></PublicLayout>} />
+        <Route path="/internships" element={<PublicLayout><InternshipHub /></PublicLayout>} />
+        <Route path="/blogs" element={<PublicLayout><BlogList /></PublicLayout>} />
+        <Route path="/blogs/:slug" element={<PublicLayout><BlogDetail /></PublicLayout>} />
+        <Route path="/privacy" element={<PublicLayout><PrivacyPolicy /></PublicLayout>} />
+        <Route path="/terms" element={<PublicLayout><TermsOfService /></PublicLayout>} />
+        <Route path="/docs" element={<PublicLayout><Documentation /></PublicLayout>} />
+
+        {/* Root Redirect based on Role (Legacy/Direct access) */}
+        <Route path="/home" element={<RoleBasedRedirect />} />
 
         {/* Student Protected Routes */}
         <Route path="/dashboard/student/*" element={
