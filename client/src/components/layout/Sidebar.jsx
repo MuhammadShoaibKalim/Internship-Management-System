@@ -17,7 +17,8 @@ import {
     LogOut,
     ShieldCheck,
     MapPin,
-    GraduationCap
+    GraduationCap,
+    Newspaper
 } from 'lucide-react';
 
 const SidebarItem = ({ icon: Icon, label, path, active = false, isOpen = true }) => (
@@ -67,6 +68,7 @@ const Sidebar = ({ role = 'student', isOpen = true }) => {
             { icon: Building2, label: "Verify Industry", path: "/dashboard/admin/industry" },
             { icon: GraduationCap, label: "Departments", path: "/dashboard/admin/departments" },
             { icon: BarChart3, label: "Global Reports", path: "/dashboard/admin/reports" },
+            { icon: Newspaper, label: "Blog Posts", path: "/dashboard/admin/blogs" },
         ]
     };
 

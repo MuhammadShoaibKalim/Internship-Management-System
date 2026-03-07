@@ -8,10 +8,18 @@ export const getAllInternships = catchAsync(async (req, res, next) => {
     const filter = { status: { $in: ['open', 'draft'] } };
 
     // Add search/category/type filters if needed from query params
-    if (req.query.category) filter.category = req.query.category;
-    if (req.query.type) filter.type = req.query.type;
+    if (req.query.category) {
+        filter.category = { $in: req.query.category.split(',') };
+    }
+    if (req.query.type) {
+        filter.type = { $in: req.query.type.split(',') };
+    }
     if (req.query.search) {
-        filter.title = { $regex: req.query.search, $options: 'i' };
+        // Search in both title and companyName
+        filter.$or = [
+            { title: { $regex: req.query.search, $options: 'i' } },
+            { companyName: { $regex: req.query.search, $options: 'i' } }
+        ];
     }
 
     const internships = await Internship.find(filter).populate({

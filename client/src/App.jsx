@@ -63,6 +63,7 @@ import VerifyIndustry from './pages/admin/VerifyIndustry';
 import AdminDepartments from './pages/admin/AdminDepartments';
 import GlobalReports from './pages/admin/GlobalReports';
 import AdminSettings from './pages/admin/AdminSettings';
+import AdminBlogs from './pages/admin/AdminBlogs';
 
 const App = () => {
   return (
@@ -180,6 +181,7 @@ const App = () => {
                 <Route path="departments" element={<AdminDepartments />} />
                 <Route path="reports" element={<GlobalReports />} />
                 <Route path="settings" element={<AdminSettings />} />
+                <Route path="blogs" element={<AdminBlogs />} />
                 <Route path="*" element={<Navigate to="/404" replace />} />
               </Routes>
             </AdminLayout>

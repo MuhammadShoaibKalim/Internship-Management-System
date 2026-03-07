@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import API from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
+import SectionHeader from '../../components/common/SectionHeader';
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
@@ -61,7 +62,7 @@ const UserManagement = () => {
             const response = await API.get(`/admin/users?role=${activeRoleTab}&search=${searchTerm}`);
             setUsers(response.data.data.users);
         } catch (err) {
-            setError('Failed to fetch user registry');
+            setError('Failed to load users. Please try again.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -76,7 +77,7 @@ const UserManagement = () => {
     const handleStatusUpdate = async (userId, newStatus) => {
         const targetUser = users.find(u => u._id === userId);
         if (targetUser?.role === 'admin') {
-            alert('Security Protocol: Administrative accounts cannot be modified via this interface.');
+            alert('Admin accounts cannot be modified from this screen.');
             return;
         }
         try {
@@ -91,11 +92,11 @@ const UserManagement = () => {
     const handleDelete = async (userId) => {
         const targetUser = users.find(u => u._id === userId);
         if (targetUser?.role === 'admin') {
-            alert('Security Protocol: Administrative accounts cannot be purged.');
+            alert('Admin accounts cannot be deleted.');
             return;
         }
 
-        if (!window.confirm(`Are you sure you want to permanently remove ${targetUser.name} from the registry? This action is irreversible.`)) return;
+        if (!window.confirm(`Are you sure you want to permanently delete ${targetUser.name}? This cannot be undone.`)) return;
 
         try {
             await API.delete(`/admin/users/${userId}`);
@@ -108,7 +109,7 @@ const UserManagement = () => {
     const handleEdit = (user) => {
         // For now, since no modal is implemented, we can show an alert or just log
         // If the user wants a full edit modal, I can implement it later.
-        alert(`Configuration protocol for ${user.name} initialized. Full profile modification dashboard coming soon.`);
+        alert(`Full profile editing for ${user.name} is coming soon.`);
     };
 
     const handleCreateAdmin = async (e) => {
@@ -125,9 +126,9 @@ const UserManagement = () => {
                 permissions: ['read_only']
             });
             fetchUsers();
-            alert('New administrative node successfully synchronized with the global registry.');
+            alert('New admin account created successfully.');
         } catch (err) {
-            alert(err.response?.data?.message || 'Administrative registration protocol failed.');
+            alert(err.response?.data?.message || 'Failed to create admin account. Please try again.');
         } finally {
             setCreatingAdmin(false);
         }
@@ -142,22 +143,14 @@ const UserManagement = () => {
 
     return (
         <div className="space-y-10 animate-fade-in pb-12">
-            {/* Clean Premium Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10">
-                <div className="space-y-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full border border-slate-200/50">
-                        <Users size={14} className="text-slate-600" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-700">Identity Registry</span>
-                    </div>
-                    <div>
-                        <h1 className="text-5xl font-extrabold text-slate-900 tracking-tight">
-                            User <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 via-secondary-700 to-slate-500">Management</span>
-                        </h1>
-                        <p className="text-slate-500 text-lg font-medium mt-3 max-w-2xl leading-relaxed">
-                            Oversee entire academic ecosystem. Manage permissions, monitor <span className="font-bold text-slate-900 px-1">node access</span>, and ensure compliance across all user roles.
-                        </p>
-                    </div>
-                </div>
+            <SectionHeader
+                title="User Management"
+                subtitle="Users"
+                description="Manage all platform users. Update permissions, monitor account access, and control user roles."
+                icon={Users}
+                gradientFrom="from-slate-900"
+                gradientTo="to-secondary-700"
+            >
                 <div className="flex flex-wrap gap-4">
                     <button className="px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-900 hover:border-slate-900 transition-all flex items-center gap-3">
                         <Download size={16} /> Export
@@ -167,19 +160,19 @@ const UserManagement = () => {
                             onClick={() => setShowAdminModal(true)}
                             className="px-10 py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-slate-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 no-underline"
                         >
-                            <UserPlus size={20} className="text-primary-400" /> Register Admin
+                            <UserPlus size={20} className="text-secondary-400" /> Register Admin
                         </button>
                     )}
                 </div>
-            </div>
+            </SectionHeader>
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {[
-                    { label: 'Total Accounts', value: stats.total, icon: Users, color: 'text-primary-600 bg-primary-50', trend: 'Global' },
-                    { label: 'Active Users', value: stats.active, icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50', trend: 'Compliant' },
-                    { label: 'Pending Access', value: stats.pending, icon: Clock, color: 'text-amber-600 bg-amber-50', trend: 'Awaiting' },
-                    { label: 'Restricted', value: stats.inactive, icon: XCircle, color: 'text-rose-600 bg-rose-50', trend: 'Security' }
+                    { label: 'Total Accounts', value: stats.total, icon: Users, color: 'text-primary-600 bg-primary-50', trend: 'All' },
+                    { label: 'Active Users', value: stats.active, icon: CheckCircle, color: 'text-emerald-600 bg-emerald-50', trend: 'Active' },
+                    { label: 'Pending Review', value: stats.pending, icon: Clock, color: 'text-amber-600 bg-amber-50', trend: 'Pending' },
+                    { label: 'Disabled', value: stats.inactive, icon: XCircle, color: 'text-rose-600 bg-rose-50', trend: 'Inactive' }
                 ].map((stat, i) => (
                     <div key={i} className="portal-card p-10 flex flex-col justify-between group hover:border-slate-100 transition-all shadow-xl shadow-slate-200/50 bg-white">
                         <div className="flex items-center justify-between mb-8">
@@ -223,7 +216,7 @@ const UserManagement = () => {
                             type="text"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            placeholder="Search by identity, email or department credentials..."
+                            placeholder="Search by name or email..."
                             className="w-full pl-16 pr-20 py-5 bg-slate-50/50 border border-slate-100 rounded-3xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-[12px] focus:ring-slate-100 focus:border-slate-900 outline-none transition-all placeholder:text-slate-300"
                         />
                         <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">Search</button>
@@ -239,16 +232,16 @@ const UserManagement = () => {
                     {loading ? (
                         <div className="flex flex-col items-center justify-center py-32 space-y-4">
                             <Loader2 className="w-12 h-12 text-slate-900 animate-spin" />
-                            <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Accessing Identity Registry...</p>
+                            <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Loading Users...</p>
                         </div>
                     ) : users.length > 0 ? (
                         <table className="w-full">
                             <thead className="bg-slate-50/50">
                                 <tr>
-                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Identity Profile</th>
-                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Academic Unit</th>
-                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Security Role</th>
-                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Compliance</th>
+                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Name</th>
+                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Department</th>
+                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Role</th>
+                                    <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Status</th>
                                     <th className="px-10 py-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -257,8 +250,20 @@ const UserManagement = () => {
                                     <tr key={user._id} className="group hover:bg-slate-50/50 transition-all">
                                         <td className="px-10 py-8">
                                             <div className="flex items-center gap-6">
-                                                <div className="w-14 h-14 bg-slate-900 text-primary-400 rounded-2xl flex items-center justify-center font-black text-lg shadow-xl shadow-slate-200 group-hover:scale-110 transition-transform">
-                                                    {user.name.split(' ').map(n => n[0]).join('')}
+                                                <div className="w-14 h-14 bg-slate-900 text-primary-400 rounded-full flex items-center justify-center font-black text-lg shadow-xl shadow-slate-200 transition-transform overflow-hidden">
+                                                    {user.avatar ? (
+                                                        <img
+                                                            src={user.avatar}
+                                                            alt={user.name}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                e.target.onerror = null;
+                                                                e.target.parentElement.innerHTML = user.name.split(' ').map(n => n[0]).join('');
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        user.name.split(' ').map(n => n[0]).join('')
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <p className="text-base font-bold text-slate-900 uppercase tracking-tight leading-none">{user.name}</p>
@@ -346,8 +351,8 @@ const UserManagement = () => {
                             <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mb-6">
                                 <Users size={40} />
                             </div>
-                            <h3 className="text-xl font-black text-slate-900 uppercase">Registry Empty</h3>
-                            <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest italic">No identities found matching these parameters</p>
+                            <h3 className="text-xl font-black text-slate-900 uppercase">No Users Found</h3>
+                            <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest italic">No users match your search</p>
                         </div>
                     )}
                 </div>
@@ -360,8 +365,8 @@ const UserManagement = () => {
                         <div className="w-full max-w-2xl bg-white rounded-[40px] shadow-2xl overflow-hidden animate-slide-up">
                             <div className="p-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                                 <div>
-                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">New Admin Node</h2>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Register administrative identity with restricted access</p>
+                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Add New Admin</h2>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Create an admin account with specific permissions</p>
                                 </div>
                                 <button onClick={() => setShowAdminModal(false)} className="p-3 hover:bg-white rounded-2xl transition-all">
                                     <XCircle size={24} className="text-slate-300 hover:text-rose-500" />
@@ -382,7 +387,7 @@ const UserManagement = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Access Email</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Email</label>
                                         <input
                                             type="email"
                                             required
@@ -396,7 +401,7 @@ const UserManagement = () => {
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Primary Key</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Password</label>
                                         <input
                                             type="password"
                                             required
@@ -407,7 +412,7 @@ const UserManagement = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Confirm Parity</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Confirm Password</label>
                                         <input
                                             type="password"
                                             required
@@ -423,10 +428,10 @@ const UserManagement = () => {
                                     <label className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] block">Access Capabilities (Permissions)</label>
                                     <div className="grid grid-cols-2 gap-4">
                                         {[
-                                            { id: 'all', label: 'Full Protocol Access', desc: 'Unlimited administrative rights' },
-                                            { id: 'approve_only', label: 'Approval Sub-node', desc: 'Can only verify/approve nodes' },
-                                            { id: 'read_only', label: 'Observer Node', desc: 'View-only access to registry' },
-                                            { id: 'manage_users', label: 'Identity Manager', desc: 'Manage students/industry/supervisors' }
+                                            { id: 'all', label: 'Full Access', desc: 'All admin rights' },
+                                            { id: 'approve_only', label: 'Approvals Only', desc: 'Can only approve/reject' },
+                                            { id: 'read_only', label: 'View Only', desc: 'Read-only access' },
+                                            { id: 'manage_users', label: 'User Manager', desc: 'Manage all user accounts' }
                                         ].map((perm) => (
                                             <button
                                                 key={perm.id}
@@ -457,7 +462,7 @@ const UserManagement = () => {
                                     className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:scale-[1.01] active:scale-95 transition-all shadow-2xl shadow-slate-200"
                                 >
                                     {creatingAdmin ? <Loader2 className="animate-spin" /> : <Shield size={20} className="text-primary-400" />}
-                                    Synchronize Sub-Admin Identity
+                                    Create Admin
                                 </button>
                             </form>
                         </div>

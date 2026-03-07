@@ -20,9 +20,14 @@ API.interceptors.response.use(
     (error) => {
         // Handle token expiration or unauthorized access
         if (error.response?.status === 401) {
-            // Optional: Redirect to login or clear token
-            // localStorage.removeItem('token');
-            // window.location.href = '/auth/login';
+            // Clear expired session data
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+
+            // Redirect to login if not already there
+            if (window.location.pathname !== '/auth/login' && window.location.pathname !== '/') {
+                window.location.href = '/auth/login?sessionExpired=true';
+            }
         }
         return Promise.reject(error);
     }

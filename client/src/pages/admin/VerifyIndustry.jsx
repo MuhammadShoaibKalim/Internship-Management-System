@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import API from '../../services/api';
 import StatusBadge from '../../components/common/StatusBadge';
+import SectionHeader from '../../components/common/SectionHeader';
 
 const VerifyIndustry = () => {
     const [industries, setIndustries] = useState([]);
@@ -49,7 +50,7 @@ const VerifyIndustry = () => {
             const response = await API.get(`/admin/users?role=industry&status=${statusMap[activeTab] || 'pending'}&search=${searchTerm}`);
             setIndustries(response.data.data.users);
         } catch (err) {
-            setError('Failed to fetch industry leads');
+            setError('Failed to load companies. Please try again.');
             console.error(err);
         } finally {
             setLoading(false);
@@ -74,28 +75,20 @@ const VerifyIndustry = () => {
 
     return (
         <div className="space-y-10 animate-fade-in pb-12">
-            {/* Clean Premium Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10">
-                <div className="space-y-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-full border border-amber-100/50">
-                        <FileCheck size={14} className="text-amber-600" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">Verification Engine</span>
-                    </div>
-                    <div>
-                        <h1 className="text-5xl font-extrabold text-slate-900 tracking-tight">
-                            Industry <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-500">Vetting Hub</span>
-                        </h1>
-                        <p className="text-slate-500 text-lg font-medium mt-3 max-w-2xl leading-relaxed">
-                            Audit institutional credentials, verify registration documentation, and finalize <span className="font-bold text-slate-900 italic px-1">Memorandums of Understanding</span> for corporate partners.
-                        </p>
-                    </div>
-                </div>
+            <SectionHeader
+                title="Industry Review Portal"
+                subtitle="Company Approvals"
+                description="Review company details, verify registration documents, and approve or reject industry partner applications."
+                icon={FileCheck}
+                gradientFrom="from-amber-600"
+                gradientTo="to-orange-500"
+            >
                 <div className="flex gap-4">
                     <button onClick={fetchIndustries} className="px-10 py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-slate-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 no-underline">
-                        <ShieldCheck size={20} className="text-amber-400" /> {loading ? 'Syncing...' : 'Initialize Audit'}
+                        <ShieldCheck size={20} className="text-amber-400" /> {loading ? 'Loading...' : 'Refresh'}
                     </button>
                 </div>
-            </div>
+            </SectionHeader>
 
             {/* Quick Action Bar */}
             <div className="flex flex-col md:flex-row gap-6 items-center justify-between">
@@ -105,15 +98,15 @@ const VerifyIndustry = () => {
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search by registration key or organization name..."
+                        placeholder="Search by company name..."
                         className="w-full pl-16 pr-10 py-5 bg-white border border-slate-100 rounded-3xl text-sm font-bold text-slate-900 focus:ring-[12px] focus:ring-slate-50 focus:border-amber-500/30 outline-none transition-all placeholder:text-slate-300"
                     />
                 </form>
                 <div className="flex gap-4 p-2 bg-slate-50 rounded-3xl border border-slate-100">
                     {[
-                        { id: 'pending', label: 'Awaiting Audit' },
-                        { id: 'approved', label: 'Approved Partners' },
-                        { id: 'rejected', label: 'Flagged' }
+                        { id: 'pending', label: 'Pending' },
+                        { id: 'approved', label: 'Approved' },
+                        { id: 'rejected', label: 'Rejected' }
                     ].map((tab) => (
                         <button
                             key={tab.id}
@@ -131,7 +124,7 @@ const VerifyIndustry = () => {
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-32 space-y-4">
                         <Loader2 className="w-12 h-12 text-amber-500 animate-spin" />
-                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Accessing Corporate Registry...</p>
+                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Loading Companies...</p>
                     </div>
                 ) : industries.length > 0 ? (
                     industries.map(industry => (
@@ -163,7 +156,7 @@ const VerifyIndustry = () => {
                                                 </a>
                                             )}
                                             <div className="px-4 py-2 bg-slate-50 border border-slate-100 text-slate-400 text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-white hover:text-amber-600 hover:border-amber-200 transition-all cursor-pointer flex items-center gap-2">
-                                                <FileCheck size={12} /> Compliance Audit
+                                                <FileCheck size={12} /> View Documents
                                             </div>
                                         </div>
                                     </div>
@@ -186,7 +179,7 @@ const VerifyIndustry = () => {
                                                     <button
                                                         onClick={() => handleVerify(industry._id, 'rejected')}
                                                         className="p-5 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-600 hover:text-white transition-all shadow-sm"
-                                                        title="Reject Lead"
+                                                        title="Reject"
                                                     >
                                                         <XCircle size={28} />
                                                     </button>
@@ -194,7 +187,7 @@ const VerifyIndustry = () => {
                                             ) : (
                                                 <div className="flex items-center gap-2 px-6 py-4 bg-slate-50 text-slate-300 rounded-2xl border border-slate-100 italic">
                                                     <ShieldCheck size={16} />
-                                                    <span className="text-[10px] font-black uppercase tracking-widest">Audit Only Mode</span>
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">View Only</span>
                                                 </div>
                                             )}
                                         </div>
@@ -212,8 +205,8 @@ const VerifyIndustry = () => {
                         <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mb-6">
                             <Building2 size={40} />
                         </div>
-                        <h3 className="text-xl font-black text-slate-900 uppercase">Clear Audit Queue</h3>
-                        <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest italic">No industry accounts require attention at this threshold</p>
+                        <h3 className="text-xl font-black text-slate-900 uppercase">All Clear</h3>
+                        <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest italic">No companies need your attention right now</p>
                     </div>
                 )}
             </div>
@@ -224,14 +217,14 @@ const VerifyIndustry = () => {
                         <Globe size={36} />
                     </div>
                     <div>
-                        <h4 className="text-xl font-extrabold text-slate-900 uppercase tracking-tighter">Institutional Synchronization</h4>
+                        <h4 className="text-xl font-extrabold text-slate-900 uppercase tracking-tighter">Sync with University</h4>
                         <p className="text-slate-400 text-[11px] font-medium mt-1 leading-relaxed">
-                            Awaiting verification from university registrar. <span className="font-bold text-slate-900 italic">Global Instance Status: Verifying Nodes.</span>
+                            Keep company data up to date. <span className="font-bold text-slate-900 italic">Click refresh to load latest changes.</span>
                         </p>
                     </div>
                 </div>
                 <button onClick={fetchIndustries} className="px-8 py-4 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 hover:border-slate-900 transition-all">
-                    System Refresh
+                    Refresh
                 </button>
             </div>
         </div>

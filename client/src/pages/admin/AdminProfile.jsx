@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import {
     User,
     Mail,
@@ -16,9 +17,11 @@ import {
     UserPlus,
     ShieldAlert,
     Activity,
-    Fingerprint
+    Fingerprint,
+    Camera
 } from 'lucide-react';
 import API from '../../services/api';
+import SectionHeader from '../../components/common/SectionHeader';
 
 const AdminProfile = () => {
     const [user, setUser] = useState(null);
@@ -55,7 +58,7 @@ const AdminProfile = () => {
     const fetchProfile = async () => {
         setLoading(true);
         try {
-            const response = await API.get('/users/getMe');
+            const response = await API.get('/users/me');
             const userData = response.data.data.user;
             setUser(userData);
             setName(userData.name);
@@ -77,9 +80,10 @@ const AdminProfile = () => {
                 secondaryEmails
             });
             setUpdateSuccess(true);
+            toast.success('Admin profile updated successfully!');
             setTimeout(() => setUpdateSuccess(false), 3000);
         } catch (err) {
-            alert(err.response?.data?.message || 'Failed to update identity node');
+            toast.error(err.response?.data?.message || 'Failed to update profile.');
         } finally {
             setSaving(false);
         }
@@ -88,7 +92,7 @@ const AdminProfile = () => {
     const handleUpdatePassword = async (e) => {
         e.preventDefault();
         if (password !== passwordConfirm) {
-            alert('Password confirmations do not match the target parity.');
+            toast.error('Passwords do not match.');
             return;
         }
         setSaving(true);
@@ -101,9 +105,41 @@ const AdminProfile = () => {
             setPasswordCurrent('');
             setPassword('');
             setPasswordConfirm('');
-            alert('Security keys successfully rotated.');
+            toast.success('Security password updated successfully.');
         } catch (err) {
-            alert(err.response?.data?.message || 'Password rotation protocol failed.');
+            toast.error(err.response?.data?.message || 'Failed to update password.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleAvatarUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("avatar", file);
+
+        try {
+            setSaving(true);
+            const response = await API.post("/users/upload-avatar", formData, {
+                headers: { "Content-Type": "multipart/form-data" }
+            });
+
+            if (response.data.status === "success") {
+                const updatedUser = response.data.data.user;
+                setUser(updatedUser);
+                toast.success("Admin photo updated successfully.");
+
+                // Update local storage
+                const storedUser = JSON.parse(localStorage.getItem('user') || '{}');
+                localStorage.setItem('user', JSON.stringify({ ...storedUser, avatar: updatedUser.avatar }));
+
+                // Dispatch event to update Header
+                window.dispatchEvent(new Event('storage'));
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.message || "Failed to upload photo.");
         } finally {
             setSaving(false);
         }
@@ -121,9 +157,9 @@ const AdminProfile = () => {
                 passwordConfirm: '',
                 permissions: ['approve_only']
             });
-            alert('New administrative node successfully synchronized.');
+            toast.success('New administrative account generated.');
         } catch (err) {
-            alert(err.response?.data?.message || 'Administrative registration failed.');
+            toast.error(err.response?.data?.message || 'Administrative registration failed.');
         } finally {
             setSaving(false);
         }
@@ -132,7 +168,7 @@ const AdminProfile = () => {
     const addSecondaryEmail = () => {
         if (!newSecondaryEmail || !newSecondaryEmail.includes('@')) return;
         if (email === newSecondaryEmail || secondaryEmails.includes(newSecondaryEmail)) {
-            alert('This communication node is already registered.');
+            alert('This email is already added.');
             return;
         }
         setSecondaryEmails([...secondaryEmails, newSecondaryEmail]);
@@ -147,48 +183,78 @@ const AdminProfile = () => {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
                 <Loader2 className="w-12 h-12 text-slate-900 animate-spin" />
-                <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Synchronizing Matrix Material...</p>
+                <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Loading Profile...</p>
             </div>
         );
     }
 
     const tabs = [
-        { id: 'identity', label: 'Identity Sync', icon: Fingerprint, desc: 'Central metadata & communication' },
-        { id: 'security', label: 'Security Key', icon: Shield, desc: 'Secret key rotation' },
-        { id: 'access', label: 'Access Node', icon: UserPlus, desc: 'Register restricted sub-admins' }
+        { id: 'identity', label: 'Profile Info', icon: Fingerprint, desc: 'Your name and emails' },
+        { id: 'security', label: 'Password', icon: Shield, desc: 'Change your password' },
+        { id: 'access', label: 'Add Admin', icon: UserPlus, desc: 'Create a sub-admin account' }
     ];
 
     return (
         <div className="space-y-12 animate-fade-in pb-20">
-            {/* Full-Width Header Card - COMPLETE WIDTH */}
-            <div className="relative overflow-hidden bg-slate-900 rounded-[48px] p-12 md:p-20 shadow-2xl shadow-slate-200">
-                <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary-500/10 to-transparent pointer-events-none"></div>
-                <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-secondary-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+            <SectionHeader
+                title="Profile Matrix"
+                subtitle="Admin Profile"
+                description="Manage your profile information, update contact details, and change your account password."
+                icon={Fingerprint}
+                gradientFrom="from-primary-400"
+                gradientTo="to-indigo-400"
+                dark={true}
+            >
+                <div className="shrink-0 relative group">
+                    {/* Premium Ambient Glow */}
+                    <div className="absolute -inset-4 bg-gradient-to-tr from-primary-500/20 to-indigo-500/20 rounded-[40px] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
 
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-12">
-                    <div className="space-y-6 max-w-3xl">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl text-primary-400 rounded-full border border-white/10">
-                            <Activity size={14} className="animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Institutional Node v2.0</span>
+                    {/* Main Avatar Container (Clean Frame) */}
+                    <div className="w-36 h-36 md:w-44 md:h-44 relative z-10">
+                        {/* Circle Glass Border */}
+                        <div className="absolute inset-x-0 inset-y-0 bg-white/5 backdrop-blur-2xl rounded-full border border-white/10 shadow-2xl overflow-hidden">
+                            <div className="absolute inset-[2px] border border-white/5 rounded-full"></div>
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter leading-none">
-                            Profile <span className="italic text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-secondary-400">Matrix</span>
-                        </h1>
-                        <p className="text-slate-400 text-lg md:text-xl font-medium leading-relaxed">
-                            Manage your core identity nodes, synchronize communication channels, and manage cryptographic <span className="text-white font-bold">re-authentication protocols.</span>
-                        </p>
-                    </div>
 
-                    <div className="shrink-0">
-                        <div className="w-32 h-32 md:w-40 md:h-40 bg-white/5 backdrop-blur-2xl rounded-[40px] border border-white/10 flex items-center justify-center relative group">
-                            <Shield size={64} className="text-secondary-400 group-hover:scale-110 transition-transform duration-500" />
-                            <div className="absolute -top-2 -right-2 w-10 h-10 bg-primary-500 rounded-2xl flex items-center justify-center shadow-lg border-4 border-slate-900">
-                                <Lock size={16} className="text-white" />
+                        {/* Image/Icon Container */}
+                        <div className="absolute inset-2 rounded-full overflow-hidden bg-slate-900 flex items-center justify-center border border-white/10 transition-all duration-500">
+                            {user?.avatar ? (
+                                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center space-y-3">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-indigo-500 rounded-full flex items-center justify-center shadow-lg transform transition-transform duration-500">
+                                        <Fingerprint size={32} className="text-white" />
+                                    </div>
+                                    <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">Profile</span>
+                                </div>
+                            )}
+
+                            {/* Hover Overlay */}
+                            <label className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col items-center justify-center cursor-pointer">
+                                <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mb-3 border border-white/20">
+                                    {saving ? <Loader2 size={20} className="animate-spin text-white" /> : <Camera size={20} className="text-white" />}
+                                </div>
+                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white">Update Matrix</span>
+                                <input type="file" hidden onChange={handleAvatarUpload} accept="image/*" disabled={saving} />
+                            </label>
+                        </div>
+
+                        {/* Professional Status Badge */}
+                        <div className="absolute -bottom-2 -right-2 z-20 flex items-center gap-2 bg-slate-900 border border-white/10 pl-3 pr-4 py-2 rounded-2xl shadow-3xl transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+                            <div className="relative w-2.5 h-2.5">
+                                <span className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-75"></span>
+                                <span className="relative block w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
                             </div>
+                            <span className="text-[9px] font-black text-white uppercase tracking-widest">Active Admin</span>
+                        </div>
+
+                        {/* Security Badge */}
+                        <div className="absolute -top-3 -right-3 w-12 h-12 bg-gradient-to-tr from-primary-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl border-4 border-slate-900 z-30 transform group-hover:-rotate-12 transition-transform">
+                            <Shield size={20} className="text-white" />
                         </div>
                     </div>
                 </div>
-            </div>
+            </SectionHeader>
 
             <div className="max-w-5xl mx-auto space-y-12">
                 {/* Compact Toggle Hub */}
@@ -216,18 +282,18 @@ const AdminProfile = () => {
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
                                         <Fingerprint className="text-primary-500" size={24} />
-                                        Identity Metadata
+                                        Profile Info
                                     </h3>
                                     {updateSuccess && (
                                         <div className="flex items-center gap-2 text-emerald-600 font-bold text-[10px] uppercase animate-bounce">
-                                            <CheckCircle size={14} /> Matrix Synced
+                                            <CheckCircle size={14} /> Saved!
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identity UID (Name)</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
                                         <input
                                             type="text"
                                             value={name}
@@ -238,7 +304,7 @@ const AdminProfile = () => {
                                         />
                                     </div>
                                     <div className="space-y-3 opacity-50">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Primary Access Node (Email)</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email (Read Only)</label>
                                         <div className="w-full px-8 py-5 bg-slate-100 rounded-2xl text-sm font-bold text-slate-400 border-2 border-transparent flex items-center justify-between">
                                             {email}
                                             <Lock size={14} />
@@ -247,7 +313,7 @@ const AdminProfile = () => {
                                 </div>
 
                                 <div className="space-y-6 pt-6 border-t border-slate-50">
-                                    <label className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] block">Redundant Notification Channels (Secondary Emails)</label>
+                                    <label className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em] block">Additional Emails</label>
                                     <div className="flex flex-wrap gap-3">
                                         {secondaryEmails.map((se) => (
                                             <div key={se} className="flex items-center gap-3 bg-slate-900 text-white pl-5 pr-3 py-3 rounded-xl shadow-lg border border-slate-800">
@@ -259,7 +325,7 @@ const AdminProfile = () => {
                                         ))}
                                         {secondaryEmails.length === 0 && (
                                             <div className="w-full p-8 border-2 border-dashed border-slate-100 rounded-2xl flex items-center justify-center text-slate-300 italic text-xs font-medium uppercase tracking-widest">
-                                                No redundant communication nodes registered
+                                                No additional emails added
                                             </div>
                                         )}
                                     </div>
@@ -269,7 +335,7 @@ const AdminProfile = () => {
                                             value={newSecondaryEmail}
                                             onChange={(e) => setNewSecondaryEmail(e.target.value)}
                                             className="flex-1 px-8 py-5 bg-slate-50 rounded-2xl text-sm font-bold text-slate-900 border-2 border-transparent focus:bg-white focus:border-slate-900 outline-none transition-all placeholder:text-slate-300"
-                                            placeholder="Register secondary node..."
+                                            placeholder="Add secondary email..."
                                         />
                                         <button type="button" onClick={addSecondaryEmail} className="px-8 bg-slate-100 hover:bg-slate-900 hover:text-white rounded-2xl transition-all">
                                             <Plus size={24} />
@@ -283,7 +349,7 @@ const AdminProfile = () => {
                                     className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:scale-[1.01] active:scale-95 transition-all shadow-2xl shadow-slate-200"
                                 >
                                     {saving ? <Loader2 className="animate-spin" /> : <Save size={20} className="text-primary-400" />}
-                                    Commit Matrix Update
+                                    Save Changes
                                 </button>
                             </form>
                         </div>
@@ -295,7 +361,7 @@ const AdminProfile = () => {
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
                                         <Key className="text-secondary-400" size={24} />
-                                        Security Key Rotation
+                                        Change Password
                                     </h3>
                                     <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="text-slate-500 hover:text-white transition-colors">
                                         {showPasswords ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -304,7 +370,7 @@ const AdminProfile = () => {
 
                                 <div className="space-y-8">
                                     <div className="space-y-3">
-                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block ml-1">Legacy Secret Key</label>
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block ml-1">Current Password</label>
                                         <input
                                             type={showPasswords ? "text" : "password"}
                                             value={passwordCurrent}
@@ -317,7 +383,7 @@ const AdminProfile = () => {
 
                                     <div className="pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block ml-1">New Access Key</label>
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block ml-1">New Password</label>
                                             <input
                                                 type={showPasswords ? "text" : "password"}
                                                 value={password}
@@ -328,7 +394,7 @@ const AdminProfile = () => {
                                             />
                                         </div>
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block ml-1">Confirm Target Parity</label>
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block ml-1">Confirm New Password</label>
                                             <input
                                                 type={showPasswords ? "text" : "password"}
                                                 value={passwordConfirm}
@@ -347,7 +413,7 @@ const AdminProfile = () => {
                                     className="w-full py-6 bg-white text-slate-900 rounded-3xl font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:scale-[1.01] active:scale-95 transition-all shadow-2xl shadow-white/10"
                                 >
                                     {saving ? <Loader2 className="animate-spin" /> : <Sparkles size={20} className="text-secondary-600" />}
-                                    Execute Rotation Protocol
+                                    Update Password
                                 </button>
                             </form>
                         </div>
@@ -361,9 +427,9 @@ const AdminProfile = () => {
                                         <UserPlus size={28} />
                                     </div>
                                     <div>
-                                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-none">Delegate Authority</h3>
+                                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-none">Add New Admin</h3>
                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2 italic flex items-center gap-2">
-                                            <ShieldAlert size={12} className="text-amber-500" /> Granular Access Delegation Layer
+                                            <ShieldAlert size={12} className="text-amber-500" /> Approvals permission only
                                         </p>
                                     </div>
                                 </div>
@@ -371,7 +437,7 @@ const AdminProfile = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-6">
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identity Name</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
                                             <input
                                                 type="text"
                                                 required
@@ -382,7 +448,7 @@ const AdminProfile = () => {
                                             />
                                         </div>
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Matrix Handle (Email)</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Email</label>
                                             <input
                                                 type="email"
                                                 required
@@ -396,7 +462,7 @@ const AdminProfile = () => {
 
                                     <div className="space-y-6">
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Secret Key</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Password</label>
                                             <input
                                                 type="password"
                                                 required
@@ -407,7 +473,7 @@ const AdminProfile = () => {
                                             />
                                         </div>
                                         <div className="space-y-3">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Verify Key</label>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm Password</label>
                                             <input
                                                 type="password"
                                                 required
@@ -422,9 +488,9 @@ const AdminProfile = () => {
 
                                 <div className="p-8 bg-slate-50 rounded-[32px] space-y-6 border border-slate-100">
                                     <div className="flex items-center justify-between">
-                                        <label className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Restricted Capability Matrix</label>
+                                        <label className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">Permissions</label>
                                         <div className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-amber-100 italic">
-                                            Approval Sub-node Only
+                                            Approvals Only
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -434,7 +500,7 @@ const AdminProfile = () => {
                                             </div>
                                             <div>
                                                 <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Approval Rights</p>
-                                                <p className="text-[8px] text-slate-400 font-bold uppercase mt-1 leading-tight">Verify & Approve Nodes</p>
+                                                <p className="text-[8px] text-slate-400 font-bold uppercase mt-1 leading-tight">Approve &amp; Reject</p>
                                             </div>
                                         </div>
                                         <div className="p-5 bg-slate-50/50 rounded-2xl border-2 border-slate-100 flex items-center gap-4 opacity-40 italic grayscale">
@@ -455,7 +521,7 @@ const AdminProfile = () => {
                                     className="w-full py-6 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-4 hover:scale-[1.01] active:scale-95 transition-all shadow-2xl shadow-slate-200"
                                 >
                                     {saving ? <Loader2 className="animate-spin" /> : <Shield size={20} className="text-primary-400" />}
-                                    Synchronize Restricted Sub-Admin
+                                    Create Admin Account
                                 </button>
                             </form>
                         </div>
@@ -463,7 +529,7 @@ const AdminProfile = () => {
                 </div>
 
                 <div className="text-center pt-12 opacity-30">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.4em]">Integrated Management Protocol &copy; 2026 Admin Matrix Hub</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.4em]">Internship Management System &copy; 2026</p>
                 </div>
             </div>
         </div>

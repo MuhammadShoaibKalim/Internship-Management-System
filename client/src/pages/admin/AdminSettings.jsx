@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import {
     Settings,
     Shield,
@@ -16,6 +17,7 @@ import {
     Loader2
 } from 'lucide-react';
 import API from '../../services/api';
+import SectionHeader from '../../components/common/SectionHeader';
 
 const AdminSettings = () => {
     const [settings, setSettings] = useState([]);
@@ -24,10 +26,10 @@ const AdminSettings = () => {
     const [saving, setSaving] = useState(false);
 
     const tabs = [
-        { id: 'security', label: 'Security Protocols', icon: Shield },
-        { id: 'platform', label: 'Platform Config', icon: Settings },
-        { id: 'notifications', label: 'Sync Alerts', icon: Bell },
-        { id: 'infrastructure', label: 'Global Health', icon: Globe },
+        { id: 'security', label: 'Security', icon: Shield },
+        { id: 'platform', label: 'General', icon: Settings },
+        { id: 'notifications', label: 'Notifications', icon: Bell },
+        { id: 'infrastructure', label: 'System Health', icon: Globe },
     ];
 
     useEffect(() => {
@@ -52,8 +54,9 @@ const AdminSettings = () => {
             const newValue = !currentValue;
             await API.patch('/admin/settings', { key, value: newValue });
             setSettings(settings.map(s => s.key === key ? { ...s, value: newValue } : s));
+            toast.success(`Setting '${key}' updated!`);
         } catch (err) {
-            alert('Failed to update system protocol');
+            toast.error('Failed to update setting.');
         } finally {
             setSaving(false);
         }
@@ -63,28 +66,20 @@ const AdminSettings = () => {
 
     return (
         <div className="space-y-10 animate-fade-in pb-12">
-            {/* Clean Premium Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10">
-                <div className="space-y-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-full border border-slate-200/50">
-                        <Settings size={14} className="text-slate-600" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-700">System Configuration</span>
-                    </div>
-                    <div>
-                        <h1 className="text-5xl font-extrabold text-slate-900 tracking-tight">
-                            Platform <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-500">Settings</span>
-                        </h1>
-                        <p className="text-slate-500 text-lg font-medium mt-3 max-w-2xl leading-relaxed">
-                            Configure global security thresholds, manage <span className="font-bold text-slate-900 px-1 italic">infrastructure health</span>, and synchronize notification payloads across all academic nodes.
-                        </p>
-                    </div>
-                </div>
+            <SectionHeader
+                title="Platform Settings"
+                subtitle="Settings"
+                description="Manage security, notifications, and general platform settings for all users."
+                icon={Settings}
+                gradientFrom="from-slate-900"
+                gradientTo="to-slate-500"
+            >
                 <div className="flex gap-4">
                     <button onClick={fetchSettings} className="px-10 py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-slate-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3">
-                        <RefreshCw size={20} className={`text-primary-400 ${loading ? 'animate-spin' : ''}`} /> Sync State
+                        <RefreshCw size={20} className={`text-primary-400 ${loading ? 'animate-spin' : ''}`} /> Refresh
                     </button>
                 </div>
-            </div>
+            </SectionHeader>
 
             {/* Settings Management Hub */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-12">
@@ -116,7 +111,7 @@ const AdminSettings = () => {
                                 {tabs.find(t => t.id === activeTab)?.label}
                             </h2>
                             <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest italic leading-relaxed">
-                                Manage granular permissions and institutional safety protocols for the {activeTab} layer.
+                                Manage settings for the {activeTab} section.
                             </p>
                         </div>
 
@@ -132,7 +127,7 @@ const AdminSettings = () => {
                                         <div className="space-y-2">
                                             <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight">{setting.label || setting.key}</h4>
                                             <p className="text-xs text-slate-400 font-medium italic opacity-70 leading-relaxed max-w-md">
-                                                {setting.description || 'Define behavioral threshold for system operations.'}
+                                                {setting.description || 'Toggle this setting on or off.'}
                                             </p>
                                         </div>
                                         <div className="flex items-center gap-6">
@@ -149,7 +144,7 @@ const AdminSettings = () => {
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-20 text-slate-300">
                                     <Shield size={48} strokeWidth={1} />
-                                    <p className="mt-4 text-[10px] font-black uppercase tracking-widest">No active protocols in this layer</p>
+                                    <p className="mt-4 text-[10px] font-black uppercase tracking-widest">No settings in this section</p>
                                 </div>
                             )}
                         </div>
@@ -159,14 +154,14 @@ const AdminSettings = () => {
                             <div className="flex items-center gap-6 p-6 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all border border-transparent hover:border-slate-100 group">
                                 <Cpu size={32} className="group-hover:text-slate-900 transition-colors" />
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest">CPU Sync Rate</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest">Response Time</p>
                                     <p className="text-xl font-bold text-slate-900">0.012ms</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-6 p-6 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-all border border-transparent hover:border-slate-100 group">
                                 <Database size={32} className="group-hover:text-slate-900 transition-colors" />
                                 <div>
-                                    <p className="text-[10px] font-black uppercase tracking-widest">Shard Latency</p>
+                                    <p className="text-[10px] font-black uppercase tracking-widest">DB Speed</p>
                                     <p className="text-xl font-bold text-slate-900">14.0% Global</p>
                                 </div>
                             </div>

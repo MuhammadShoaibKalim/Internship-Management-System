@@ -8,11 +8,9 @@ import { protect, restrictTo } from '../middleware/auth.middleware.js';
 
 const router = express.Router();
 
-router.use(protect);
-
 router.route('/')
     .get(getAllInternships)
-    .post(restrictTo('industry'), createInternship);
+    .post(protect, restrictTo('industry'), createInternship);
 
 router.route('/:id')
     .get(getInternship);

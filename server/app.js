@@ -17,6 +17,7 @@ import adminRoutes from './routes/admin.routes.js';
 import userRoutes from './routes/user.routes.js';
 import supervisorRoutes from './routes/supervisor.routes.js';
 import industryRoutes from './routes/industry.routes.js';
+import blogRoutes from './routes/blog.routes.js';
 import requestLogger from './middleware/log.middleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -67,6 +68,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/supervisor', supervisorRoutes);
 app.use('/api/industry', industryRoutes);
+app.use('/api/blogs', blogRoutes);
 
 
 app.get('/api/health', (req, res) => {
