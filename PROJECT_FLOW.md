@@ -50,6 +50,7 @@ The project follows a **MERN Stack** (MongoDB, Express, React, Node) architectur
 1. **System Health**: Monitors CPU load, DB consistency, and "Telemetry" via the Dashboard.
 2. **User Management**: Full control to edit, block, or delete any user role.
 3. **Industry Vetting**: Approves new companies to join the platform.
+4. **Content Management**: Creates and publishes professional blog posts for the knowledge hub.
 
 ---
 
@@ -120,12 +121,19 @@ Use this sequence to verify the **Full Professional Lifecycle**:
 
 ---
 
-## 🎨 5. Design Concepts (Premium UI)
+## 📝 6. Blog Content Structure (The Knowledge Hub)
 
-1. **Glassmorphism**: Using `backdrop-blur-md` for panels to give a modern, depth-filled feel.
-2. **Micro-Animations**: `hover:rotate-12` on icons and `animate-fade-in` on layout transitions.
-3. **Visual Consistency**: Uniform spacing standards (`space-y-10`) and "Pill" headers for role identification.
-4. **Zero-Lag UI**: Integrated `LoadingBar` and `ScrollToTop` for a seamless SPA experience.
+The Admin can publish blogs to guide students through their industrial journey.
+
+### **Data Node Requirements:**
+- **Title**: Compelling professional heading.
+- **Slug**: Auto-generated URL-friendly version of the title.
+- **Content**: Full body text (supports HTML tags for formatting).
+- **Excerpt**: Short 2-line summary for the preview list.
+- **Category**: `Career Advice`, `Technical Skills`, `Company Spotlight`, `Internship Tips`, or `General`.
+- **Status**: `draft` (internal) or `published` (visible to public).
+- **Read Time**: Estimated reading duration in minutes.
+- **Tags**: Comma-separated professional keywords.
 
 ---
 

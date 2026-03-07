@@ -361,7 +361,15 @@ const Header = ({ role, toggleSidebar, isSidebarOpen }) => {
                             {/* Simple Circle Frame */}
                             <div className="absolute inset-x-0 inset-y-0 bg-slate-900 rounded-full shadow-lg overflow-hidden transition-transform duration-500">
                                 {user.avatar ? (
-                                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                    <img
+                                        src={user.avatar}
+                                        alt={user.name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                                        }}
+                                    />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-950 font-black text-xs text-white uppercase italic">
                                         {user.name ? user.name.charAt(0) : 'A'}
@@ -383,7 +391,15 @@ const Header = ({ role, toggleSidebar, isSidebarOpen }) => {
                                     <div className="w-14 h-14 relative">
                                         <div className="absolute inset-0 bg-slate-900 rounded-full shadow-xl overflow-hidden border-2 border-white/10">
                                             {user.avatar ? (
-                                                <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                                <img
+                                                    src={user.avatar}
+                                                    alt={user.name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        e.target.onerror = null;
+                                                        e.target.src = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                                                    }}
+                                                />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-600 to-indigo-600 text-white font-black text-lg italic">
                                                     {user.name ? user.name.charAt(0) : 'A'}

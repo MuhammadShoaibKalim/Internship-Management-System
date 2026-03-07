@@ -21,9 +21,61 @@ const blogSchema = new mongoose.Schema({
         type: String,
         default: 'default-blog.jpg'
     },
+    coverImageWidth: {
+        type: String,
+        default: '100%'
+    },
+    coverImageHeight: {
+        type: String,
+        default: 'auto'
+    },
+    coverImageFit: {
+        type: String,
+        enum: ['cover', 'contain', 'fill'],
+        default: 'cover'
+    },
+    contentImage: {
+        type: String
+    },
+    contentImageWidth: {
+        type: String,
+        default: '100%'
+    },
+    contentImageHeight: {
+        type: String,
+        default: 'auto'
+    },
+    contentImageFit: {
+        type: String,
+        enum: ['cover', 'contain', 'fill'],
+        default: 'cover'
+    },
+    allowSuggestions: {
+        type: Boolean,
+        default: false
+    },
+    allowComments: {
+        type: Boolean,
+        default: true
+    },
+    showEngagement: {
+        type: Boolean,
+        default: true
+    },
+    likes: {
+        type: Number,
+        default: 0
+    },
+    relatedTopics: [
+        {
+            title: String,
+            link: String,
+            isCompleted: { type: Boolean, default: false }
+        }
+    ],
     category: {
         type: String,
-        enum: ['Career Advice', 'Technical Skills', 'Company Spotlight', 'Internship Tips', 'General'],
+        enum: ['Career Advice', 'Technical Skills', 'Company Spotlight', 'Internship Tips', 'General', 'Programming', 'Tutorial'],
         default: 'General'
     },
     author: {
@@ -41,9 +93,13 @@ const blogSchema = new mongoose.Schema({
         default: 5
     },
     tags: [String],
+    lastUpdated: {
+        type: Date,
+        default: Date.now
+    },
     createdAt: {
         type: Date,
-        default: Date.now()
+        default: Date.now
     }
 }, {
     toJSON: { virtuals: true },

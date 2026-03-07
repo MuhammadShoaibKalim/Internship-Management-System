@@ -130,3 +130,32 @@ export const uploadAvatarFile = multer({
     fileFilter: avatarFilter,
     limits: { fileSize: 2 * 1024 * 1024 } // 2 MB max for avatars
 }).single('avatar');
+
+// ─── Blog Image Storage ──────────────────────────────────────────────────────
+const blogStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, '../public/uploads/blogs');
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        const uniqueName = `blog-${Date.now()}${ext}`;
+        cb(null, uniqueName);
+    }
+});
+
+const blogFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith('image')) {
+        cb(null, true);
+    } else {
+        cb(new AppError('Only image files are allowed for blogs', 400), false);
+    }
+};
+
+export const uploadBlogImage = multer({
+    storage: blogStorage,
+    fileFilter: blogFilter,
+    limits: { fileSize: 5 * 1024 * 1024 } // 5 MB max
+}).single('image');
+

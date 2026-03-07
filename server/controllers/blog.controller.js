@@ -108,3 +108,20 @@ export const deleteBlog = catchAsync(async (req, res, next) => {
         data: null
     });
 });
+
+// 6. Upload Blog Image (Admin Only)
+export const uploadBlogImageAction = catchAsync(async (req, res, next) => {
+    if (!req.file) {
+        return next(new AppError('Please upload an image', 400));
+    }
+
+    const imageUrl = `http://localhost:4000/uploads/blogs/${req.file.filename}`;
+
+    res.status(200).json({
+        status: 'success',
+        data: {
+            url: imageUrl
+        }
+    });
+});
+

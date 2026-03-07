@@ -15,14 +15,18 @@ import {
     Tag,
     ChevronRight,
     BookOpen,
-    Filter
+    Filter,
+    Upload,
+    Maximize,
+    Minimize,
+    Move
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import API from '../../services/api';
 import SectionHeader from '../../components/common/SectionHeader';
 
-const CATEGORIES = ['Career Advice', 'Technical Skills', 'Company Spotlight', 'Internship Tips', 'General'];
+const CATEGORIES = ['Career Advice', 'Technical Skills', 'Company Spotlight', 'Internship Tips', 'General', 'Programming', 'Tutorial'];
 
 const emptyForm = {
     title: '',
@@ -32,13 +36,24 @@ const emptyForm = {
     tags: '',
     readTime: 5,
     status: 'draft',
-    coverImage: ''
+    coverImage: '',
+    coverImageWidth: '100%',
+    coverImageHeight: '400px',
+    coverImageFit: 'cover',
+    contentImage: '',
+    contentImageWidth: '100%',
+    contentImageHeight: 'auto',
+    contentImageFit: 'cover',
+    allowSuggestions: false,
+    allowComments: true,
+    showEngagement: true,
+    relatedTopics: []
 };
 
 const StatusBadge = ({ status }) => (
     <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest ${status === 'published'
-            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-            : 'bg-amber-50 text-amber-600 border border-amber-100'
+        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+        : 'bg-amber-50 text-amber-600 border border-amber-100'
         }`}>
         <span className={`w-1.5 h-1.5 rounded-full ${status === 'published' ? 'bg-emerald-500' : 'bg-amber-400'}`} />
         {status}
@@ -55,7 +70,9 @@ const AdminBlogs = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentBlog, setCurrentBlog] = useState(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [uploading, setUploading] = useState(false);
     const [deletingId, setDeletingId] = useState(null);
+    const fileInputRef = React.useRef(null);
 
     useEffect(() => {
         fetchBlogs();
@@ -82,7 +99,8 @@ const AdminBlogs = () => {
     const openEdit = (blog) => {
         setCurrentBlog({
             ...blog,
-            tags: Array.isArray(blog.tags) ? blog.tags.join(', ') : blog.tags || ''
+            tags: Array.isArray(blog.tags) ? blog.tags.join(', ') : blog.tags || '',
+            relatedTopics: blog.relatedTopics || []
         });
         setIsEditing(true);
         setIsModalOpen(true);
@@ -92,6 +110,32 @@ const AdminBlogs = () => {
         setIsModalOpen(false);
         setCurrentBlog(emptyForm);
         setIsEditing(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
+    const handleImageUpload = async (e, type = 'cover') => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        setUploading(type);
+        try {
+            const res = await API.post('/blogs/upload-image', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            if (type === 'cover') {
+                setCurrentBlog({ ...currentBlog, coverImage: res.data.data.url });
+            } else {
+                setCurrentBlog({ ...currentBlog, contentImage: res.data.data.url });
+            }
+            toast.success('Image uploaded successfully');
+        } catch (err) {
+            toast.error('Image upload failed');
+        } finally {
+            setUploading(null);
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -102,7 +146,8 @@ const AdminBlogs = () => {
                 ...currentBlog,
                 tags: currentBlog.tags
                     ? currentBlog.tags.split(',').map(t => t.trim()).filter(Boolean)
-                    : []
+                    : [],
+                lastUpdated: new Date()
             };
 
             if (isEditing) {
@@ -227,8 +272,8 @@ const AdminBlogs = () => {
                         key={cat}
                         onClick={() => setCategoryFilter(cat)}
                         className={`px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${categoryFilter === cat
-                                ? 'bg-violet-600 text-white shadow-xl shadow-violet-200'
-                                : 'bg-white text-slate-400 hover:text-slate-900 border border-slate-100'
+                            ? 'bg-violet-600 text-white shadow-xl shadow-violet-200'
+                            : 'bg-white text-slate-400 hover:text-slate-900 border border-slate-100'
                             }`}
                     >
                         {cat}
@@ -264,8 +309,19 @@ const AdminBlogs = () => {
                                     >
                                         <td className="p-6">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 bg-violet-50 rounded-2xl flex items-center justify-center text-violet-400 flex-shrink-0">
-                                                    <BookOpen size={20} />
+                                                <div className="w-12 h-12 bg-violet-50 rounded-2xl overflow-hidden flex items-center justify-center text-violet-400 flex-shrink-0">
+                                                    {blog.author?.avatar ? (
+                                                        <img
+                                                            src={blog.author.avatar}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => {
+                                                                e.target.onerror = null;
+                                                                e.target.src = 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <BookOpen size={20} />
+                                                    )}
                                                 </div>
                                                 <div>
                                                     <p className="font-black text-slate-900 text-sm uppercase tracking-tight line-clamp-1">{blog.title}</p>
@@ -407,16 +463,203 @@ const AdminBlogs = () => {
                                 />
                             </div>
 
-                            {/* Cover Image */}
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Cover Image URL</label>
-                                <input
-                                    type="url"
-                                    value={currentBlog.coverImage}
-                                    onChange={e => setCurrentBlog({ ...currentBlog, coverImage: e.target.value })}
-                                    placeholder="https://example.com/image.jpg"
-                                    className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-[12px] focus:ring-slate-50 focus:border-violet-500/30 outline-none transition-all"
-                                />
+                            {/* Cover Image Upload & Settings */}
+                            <div className="space-y-6 p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic flex items-center gap-2">
+                                    <Upload size={14} /> Global Banner Settings
+                                </label>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Image Source</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => fileInputRef.current?.click()}
+                                                disabled={uploading}
+                                                className="px-6 py-3 bg-violet-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-violet-700 transition-all flex items-center gap-2"
+                                            >
+                                                {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                                                {uploading ? 'Uploading...' : 'Upload Image'}
+                                            </button>
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                onChange={handleImageUpload}
+                                                className="hidden"
+                                                accept="image/*"
+                                            />
+                                        </div>
+                                        <input
+                                            type="url"
+                                            value={currentBlog.coverImage}
+                                            onChange={e => setCurrentBlog({ ...currentBlog, coverImage: e.target.value })}
+                                            placeholder="Or enter image URL..."
+                                            className="w-full px-6 py-4 bg-white border border-slate-100 rounded-xl text-xs font-bold text-slate-900 focus:border-violet-500 outline-none transition-all"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Width</label>
+                                                <input
+                                                    type="text"
+                                                    value={currentBlog.coverImageWidth}
+                                                    onChange={e => setCurrentBlog({ ...currentBlog, coverImageWidth: e.target.value })}
+                                                    placeholder="100% or 800px"
+                                                    className="w-full px-6 py-4 bg-white border border-slate-100 rounded-xl text-xs font-bold text-slate-900 focus:border-violet-500 outline-none transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Height</label>
+                                                <input
+                                                    type="text"
+                                                    value={currentBlog.coverImageHeight}
+                                                    onChange={e => setCurrentBlog({ ...currentBlog, coverImageHeight: e.target.value })}
+                                                    placeholder="auto or 500px"
+                                                    className="w-full px-6 py-4 bg-white border border-slate-100 rounded-xl text-xs font-bold text-slate-900 focus:border-violet-500 outline-none transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Object Fit (Scale Mode)</label>
+                                            <div className="flex gap-2">
+                                                {['cover', 'contain', 'fill'].map(fit => (
+                                                    <button
+                                                        key={fit}
+                                                        type="button"
+                                                        onClick={() => setCurrentBlog({ ...currentBlog, coverImageFit: fit })}
+                                                        className={`flex-1 py-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${currentBlog.coverImageFit === fit ? 'bg-slate-900 text-white' : 'bg-white text-slate-400 border border-slate-100'
+                                                            }`}
+                                                    >
+                                                        {fit}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Preview Area */}
+                                {currentBlog.coverImage && (
+                                    <div className="mt-6 flex flex-col items-center gap-4">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Live Preview in Layout</p>
+                                        <div
+                                            className="rounded-3xl overflow-hidden shadow-2xl border-4 border-white ring-1 ring-slate-100 bg-slate-200"
+                                            style={{
+                                                width: currentBlog.coverImageWidth,
+                                                height: currentBlog.coverImageHeight,
+                                                maxWidth: '100%'
+                                            }}
+                                        >
+                                            <img
+                                                src={currentBlog.coverImage}
+                                                className="w-full h-full"
+                                                style={{ objectFit: currentBlog.coverImageFit }}
+                                                alt="Preview"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Secondary Content Image Settings */}
+                            <div className="space-y-6 p-8 bg-violet-50/30 rounded-[2.5rem] border border-violet-100/50">
+                                <label className="text-[10px] font-black text-violet-600 uppercase tracking-widest ml-1 italic flex items-center gap-2">
+                                    <Move size={14} /> Optional content Image Slot
+                                </label>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-slate-500 uppercase">Image Source</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const input = document.createElement('input');
+                                                    input.type = 'file';
+                                                    input.accept = 'image/*';
+                                                    input.onchange = (e) => handleImageUpload(e, 'content');
+                                                    input.click();
+                                                }}
+                                                disabled={uploading === 'content'}
+                                                className="px-6 py-3 bg-violet-600 text-white text-[9px] font-black uppercase tracking-widest rounded-xl hover:bg-violet-700 transition-all flex items-center gap-2"
+                                            >
+                                                {uploading === 'content' ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                                                {uploading === 'content' ? 'Uploading...' : 'Upload Image'}
+                                            </button>
+                                        </div>
+                                        <input
+                                            type="url"
+                                            value={currentBlog.contentImage}
+                                            onChange={e => setCurrentBlog({ ...currentBlog, contentImage: e.target.value })}
+                                            placeholder="Content image URL..."
+                                            className="w-full px-6 py-4 bg-white border border-slate-100 rounded-xl text-xs font-bold text-slate-900 focus:border-violet-500 outline-none transition-all"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Width</label>
+                                                <input
+                                                    type="text"
+                                                    value={currentBlog.contentImageWidth}
+                                                    onChange={e => setCurrentBlog({ ...currentBlog, contentImageWidth: e.target.value })}
+                                                    placeholder="100% or 600px"
+                                                    className="w-full px-6 py-4 bg-white border border-slate-100 rounded-xl text-xs font-bold text-slate-900 focus:border-violet-500 outline-none transition-all"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Height</label>
+                                                <input
+                                                    type="text"
+                                                    value={currentBlog.contentImageHeight}
+                                                    onChange={e => setCurrentBlog({ ...currentBlog, contentImageHeight: e.target.value })}
+                                                    placeholder="auto or 400px"
+                                                    className="w-full px-6 py-4 bg-white border border-slate-100 rounded-xl text-xs font-bold text-slate-900 focus:border-violet-500 outline-none transition-all"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Object Fit</label>
+                                            <div className="flex gap-2">
+                                                {['cover', 'contain', 'fill'].map(fit => (
+                                                    <button
+                                                        key={fit}
+                                                        type="button"
+                                                        onClick={() => setCurrentBlog({ ...currentBlog, contentImageFit: fit })}
+                                                        className={`flex-1 py-3 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${currentBlog.contentImageFit === fit ? 'bg-violet-600 text-white' : 'bg-white text-slate-400 border border-slate-100'}`}
+                                                    >
+                                                        {fit}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {currentBlog.contentImage && (
+                                    <div className="mt-6 flex flex-col items-center gap-4">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic text-center">In-Content Preview</p>
+                                        <div
+                                            className="rounded-3xl overflow-hidden shadow-xl border-4 border-white ring-1 ring-slate-100 bg-slate-200"
+                                            style={{
+                                                width: currentBlog.contentImageWidth,
+                                                height: currentBlog.contentImageHeight,
+                                                maxWidth: '100%'
+                                            }}
+                                        >
+                                            <img
+                                                src={currentBlog.contentImage}
+                                                className="w-full h-full"
+                                                style={{ objectFit: currentBlog.contentImageFit }}
+                                                alt="Content Preview"
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Row: Category + Read Time */}
@@ -458,7 +701,92 @@ const AdminBlogs = () => {
                                 />
                             </div>
 
-                            {/* Status */}
+                            {/* Tutorial Engagement Settings */}
+                            <div className="p-8 bg-slate-900 rounded-[2.5rem] border border-slate-800 space-y-6">
+                                <label className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.4em] ml-1 italic flex items-center gap-2">
+                                    Interactive Node Settings
+                                </label>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    {[
+                                        { id: 'allowSuggestions', label: 'Suggestions', icon: Eye },
+                                        { id: 'allowComments', label: 'Comments', icon: BookOpen },
+                                        { id: 'showEngagement', label: 'Engagement Bar', icon: Tag }
+                                    ].map(toggle => (
+                                        <button
+                                            key={toggle.id}
+                                            type="button"
+                                            onClick={() => setCurrentBlog({ ...currentBlog, [toggle.id]: !currentBlog[toggle.id] })}
+                                            className={`flex items-center justify-center gap-3 p-4 rounded-2xl border transition-all ${currentBlog[toggle.id]
+                                                ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500'
+                                                : 'bg-white/5 border-white/10 text-slate-500'}`}
+                                        >
+                                            <toggle.icon size={16} />
+                                            <span className="text-[10px] font-black uppercase tracking-widest">{toggle.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Related Topics (Explorer) */}
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between ml-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Related Concept Explorer</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setCurrentBlog({
+                                            ...currentBlog,
+                                            relatedTopics: [...(currentBlog.relatedTopics || []), { title: '', link: '', isCompleted: false }]
+                                        })}
+                                        className="text-[9px] font-black text-violet-600 uppercase tracking-widest hover:underline"
+                                    >
+                                        + Add Topic Link
+                                    </button>
+                                </div>
+                                <div className="space-y-3">
+                                    {(currentBlog.relatedTopics || []).map((topic, idx) => (
+                                        <div key={idx} className="flex gap-3 animate-in slide-in-from-left duration-300">
+                                            <input
+                                                type="text"
+                                                placeholder="Topic Title (e.g. JVM Intro)"
+                                                value={topic.title}
+                                                onChange={(e) => {
+                                                    const newTopics = [...currentBlog.relatedTopics];
+                                                    newTopics[idx].title = e.target.value;
+                                                    setCurrentBlog({ ...currentBlog, relatedTopics: newTopics });
+                                                }}
+                                                className="flex-1 px-5 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none focus:border-violet-500"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Link URL"
+                                                value={topic.link}
+                                                onChange={(e) => {
+                                                    const newTopics = [...currentBlog.relatedTopics];
+                                                    newTopics[idx].link = e.target.value;
+                                                    setCurrentBlog({ ...currentBlog, relatedTopics: newTopics });
+                                                }}
+                                                className="flex-1 px-5 py-3 bg-slate-50 border border-slate-100 rounded-xl text-xs font-bold outline-none focus:border-violet-500"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newTopics = currentBlog.relatedTopics.filter((_, i) => i !== idx);
+                                                    setCurrentBlog({ ...currentBlog, relatedTopics: newTopics });
+                                                }}
+                                                className="p-3 text-rose-300 hover:text-rose-600 transition-colors"
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {(currentBlog.relatedTopics || []).length === 0 && (
+                                        <p className="text-[10px] text-slate-400 italic text-center py-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">No related topics mapped yet.</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Publication Status */}
                             <div className="space-y-3">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Publication Status</label>
                                 <div className="flex gap-4">
@@ -468,8 +796,8 @@ const AdminBlogs = () => {
                                             type="button"
                                             onClick={() => setCurrentBlog({ ...currentBlog, status: s })}
                                             className={`flex-1 py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${currentBlog.status === s
-                                                    ? s === 'published' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-amber-500 text-white shadow-lg shadow-amber-200'
-                                                    : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+                                                ? s === 'published' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-amber-500 text-white shadow-lg shadow-amber-200'
+                                                : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
                                                 }`}
                                         >
                                             {s === 'published' ? '🌐 Published' : '📝 Draft'}

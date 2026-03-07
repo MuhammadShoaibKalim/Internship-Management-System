@@ -5,9 +5,11 @@ import {
     getBlogBySlug,
     createBlog,
     updateBlog,
-    deleteBlog
+    deleteBlog,
+    uploadBlogImageAction
 } from '../controllers/blog.controller.js';
 import { protect, restrictTo } from '../middleware/auth.middleware.js';
+import { uploadBlogImage } from '../utils/upload.utils.js';
 
 const router = express.Router();
 
@@ -20,10 +22,12 @@ router.use(protect);
 router.use(restrictTo('admin'));
 
 router.get('/admin/all', getAllBlogsAdmin);
+router.post('/upload-image', uploadBlogImage, uploadBlogImageAction);
 router.post('/', createBlog);
 router.route('/:id')
     .patch(updateBlog)
     .delete(deleteBlog);
+
 
 export default router;
 

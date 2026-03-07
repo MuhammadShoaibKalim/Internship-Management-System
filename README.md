@@ -42,6 +42,7 @@ The system is architected around four distinct "Nodes," each with a specialized 
 ### 🛡️ Root Admin Node
 - **Global Control**: Full oversight of system telemetry and user management.
 - **Vetting Hub**: Manual verification of Industry Partners to ensure platform integrity.
+- **Blog Engine**: Full CMS to manage academic insights and professional career advice.
 - **Real-time Notifications**: Global system alert engine for cross-role communication.
 - **Data Integrity**: Global reporting and system-wide configuration management.
 
@@ -89,6 +90,34 @@ The system is architected around four distinct "Nodes," each with a specialized 
 
 For a deep-dive into the technical architecture, role permissions, and a **Step-by-Step Testing Walkthrough**, refer to the:
 [**IMS Complete Project Flow & Testing Guide**](./PROJECT_FLOW.md)
+
+---
+
+---
+
+## 🧪 Tutorial Engine Sample Data (Premium Implementation)
+
+Use this high-fidelity data to test the **Tutorial Engine** features (Mid-content images, Topic Explorer, and Engagement Toggles):
+
+### 📝 Logic Node: "Advanced Memory Management in Node.js"
+| Field | Value |
+| :--- | :--- |
+| **Title** | `Deep Dive: Advanced Memory Management & GC in Node.js` |
+| **Category** | `Programming` |
+| **Excerpt** | `Master the V8 engine heap, scavenge cycles, and memory leak detection tools for enterprise-scale Node.js applications.` |
+| **Read Time** | `12` |
+| **Tags** | `nodejs, v8, performance, memory, backend` |
+| **Cover Image** | `https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&q=80&w=1200` |
+| **Toggles** | Suggestions: `ON`, Comments: `ON`, Engagement Bar: `ON` |
+| **Content** | `<h2>The V8 Heap Anatomy</h2><p>Understanding the Resident Set (RS) is critical. The heap is divided into New Space and Old Space...</p><h3>Memory Leak Patterns</h3><p>Common pitfalls include global variables and forgotten timers. Always use <code>--inspect</code> to profile...</p>` |
+
+#### 🗺️ Related Topic Explorer (Add these links)
+1. **Title**: `Garbage Collection Visualizer` | **Link**: `https://v8.dev/blog/trash-talk`
+2. **Title**: `Node.js Profiling Guide` | **Link**: `https://nodejs.org/en/docs/guides/simple-profiling/`
+
+#### 🖼️ Content Image Slot
+- **URL**: `https://images.unsplash.com/photo-1551288049-bbbda536ad80?auto=format&fit=crop&q=80&w=800`
+- **Width**: `80%` | **Height**: `400px` | **Fit**: `cover`
 
 ---
 
