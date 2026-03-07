@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import API from '../../services/api';
+import SectionHeader from '../../components/common/SectionHeader';
 
 const AdminDepartments = () => {
     const [departments, setDepartments] = useState([]);
@@ -36,8 +37,8 @@ const AdminDepartments = () => {
     const fetchDepartments = async () => {
         setLoading(true);
         try {
-            const response = await API.get('/admin/departments');
-            setDepartments(response.data.data.departments);
+            const response = await API.get('/admin/departments/stats');
+            setDepartments(response.data.data.stats);
         } catch (err) {
             console.error('Failed to fetch departments', err);
         } finally {
@@ -49,7 +50,7 @@ const AdminDepartments = () => {
         e.preventDefault();
         try {
             if (isEditing) {
-                await API.patch(`/admin/departments/${currentDept._id}`, currentDept);
+                await API.patch(`/admin/departments/${currentDept._id || currentDept.id}`, currentDept);
             } else {
                 await API.post('/admin/departments', currentDept);
             }
@@ -61,9 +62,10 @@ const AdminDepartments = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to decommission this academic unit?')) return;
+        if (!window.confirm('Are you sure you want to delete this department?')) return;
         try {
-            await API.delete(`/admin/departments/${id}`);
+            const actualId = departments.find(d => d.id === id || d._id === id)?._id || id;
+            await API.delete(`/admin/departments/${actualId}`);
             fetchDepartments();
         } catch (err) {
             alert('Failed to delete department');
@@ -89,29 +91,21 @@ const AdminDepartments = () => {
 
     return (
         <div className="space-y-10 animate-fade-in pb-12 relative">
-            {/* Clean Premium Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-10">
-                <div className="space-y-4">
-                    <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 rounded-full border border-indigo-100/50">
-                        <GraduationCap size={14} className="text-indigo-600" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-700">Academic Hierarchy</span>
-                    </div>
-                    <div>
-                        <h1 className="text-5xl font-extrabold text-slate-900 tracking-tight">
-                            University <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-primary-500">Departments</span>
-                        </h1>
-                        <p className="text-slate-500 text-lg font-medium mt-3 max-w-2xl leading-relaxed">
-                            Organize academic units, manage faculty appointments, and monitor <span className="font-bold text-slate-900 px-1">department-wide quota</span> and internship metrics.
-                        </p>
-                    </div>
-                </div>
+            <SectionHeader
+                title="University Departments"
+                subtitle="Departments"
+                description="Manage departments, add faculty supervisors, and track student and internship numbers per department."
+                icon={GraduationCap}
+                gradientFrom="from-indigo-600"
+                gradientTo="to-primary-500"
+            >
                 <button
                     onClick={() => openModal()}
                     className="px-10 py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-slate-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center gap-3 no-underline"
                 >
-                    <Plus size={20} className="text-indigo-400" /> Create New Unit
+                    <Plus size={20} className="text-indigo-400" /> Add Department
                 </button>
-            </div>
+            </SectionHeader>
 
             {/* Quick Filter */}
             <div className="portal-card p-6 bg-white border-none shadow-xl shadow-slate-100/50 flex flex-col md:flex-row gap-6 items-center">
@@ -135,7 +129,7 @@ const AdminDepartments = () => {
                 {loading ? (
                     <div className="col-span-full flex flex-col items-center justify-center py-32 space-y-4">
                         <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
-                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Mapping Academic Grid...</p>
+                        <p className="text-slate-400 font-black uppercase tracking-widest text-[10px]">Loading Departments...</p>
                     </div>
                 ) : filteredDepartments.length > 0 ? (
                     filteredDepartments.map(dept => (
@@ -160,15 +154,15 @@ const AdminDepartments = () => {
                             <div className="grid grid-cols-3 gap-6 mb-10 relative z-10">
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Enrolled</p>
-                                    <p className="text-xl font-bold text-slate-900">0</p>
+                                    <p className="text-xl font-bold text-slate-900">{dept.students || 0}</p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Faculty</p>
-                                    <p className="text-xl font-bold text-slate-900">0</p>
+                                    <p className="text-xl font-bold text-slate-900">{dept.supervisors || 0}</p>
                                 </div>
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Internships</p>
-                                    <p className="text-xl font-bold text-primary-600">0</p>
+                                    <p className="text-xl font-bold text-primary-600">{dept.internships || 0}</p>
                                 </div>
                             </div>
 
@@ -192,68 +186,70 @@ const AdminDepartments = () => {
                         <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mb-6">
                             <GraduationCap size={40} />
                         </div>
-                        <h3 className="text-xl font-black text-slate-900 uppercase">Unit Registry Empty</h3>
-                        <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest italic">Initialize academic infrastructure by constructing first unit</p>
+                        <h3 className="text-xl font-black text-slate-900 uppercase">No Departments Yet</h3>
+                        <p className="text-slate-400 text-xs font-bold mt-2 uppercase tracking-widest italic">Click add department to get started</p>
                     </div>
                 )}
-            </div>
+            </div >
 
             {/* Department Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xl z-[100] flex items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300">
-                    <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-3xl overflow-hidden animate-in zoom-in-95 duration-300">
-                        <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-900 text-white">
-                            <div>
-                                <h2 className="text-2xl font-black uppercase tracking-tight">{isEditing ? 'Reconfigure Unit' : 'Construct Academic Unit'}</h2>
-                                <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">System Infrastructure Protocol</p>
+            {
+                isModalOpen && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xl z-[100] flex items-center justify-center p-6 sm:p-12 animate-in fade-in duration-300">
+                        <div className="bg-white w-full max-w-2xl rounded-[3rem] shadow-3xl overflow-hidden animate-in zoom-in-95 duration-300">
+                            <div className="p-10 border-b border-slate-50 flex justify-between items-center bg-slate-900 text-white">
+                                <div>
+                                    <h2 className="text-2xl font-black uppercase tracking-tight">{isEditing ? 'Edit Department' : 'Add New Department'}</h2>
+                                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Fill in the details below</p>
+                                </div>
+                                <button onClick={closeModal} className="p-3 hover:bg-white/10 rounded-2xl transition-all">
+                                    <X size={24} />
+                                </button>
                             </div>
-                            <button onClick={closeModal} className="p-3 hover:bg-white/10 rounded-2xl transition-all">
-                                <X size={24} />
-                            </button>
-                        </div>
-                        <form onSubmit={handleSubmit} className="p-10 space-y-8">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                            <form onSubmit={handleSubmit} className="p-10 space-y-8">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Unit Name</label>
+                                        <input
+                                            required
+                                            type="text"
+                                            value={currentDept.name}
+                                            onChange={(e) => setCurrentDept({ ...currentDept, name: e.target.value })}
+                                            placeholder="Department of Computer Science..."
+                                            className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-[12px] focus:ring-slate-50 focus:border-indigo-500/30 outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Short Code</label>
+                                        <input
+                                            required
+                                            type="text"
+                                            value={currentDept.code}
+                                            onChange={(e) => setCurrentDept({ ...currentDept, code: e.target.value })}
+                                            placeholder="CS01"
+                                            className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-[12px] focus:ring-slate-50 focus:border-indigo-500/30 outline-none transition-all uppercase"
+                                        />
+                                    </div>
+                                </div>
                                 <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Unit Name</label>
-                                    <input
-                                        required
-                                        type="text"
-                                        value={currentDept.name}
-                                        onChange={(e) => setCurrentDept({ ...currentDept, name: e.target.value })}
-                                        placeholder="Department of Computer Science..."
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Description</label>
+                                    <textarea
+                                        value={currentDept.description}
+                                        onChange={(e) => setCurrentDept({ ...currentDept, description: e.target.value })}
+                                        rows="4"
+                                        placeholder="Enter department scope and academic focus..."
                                         className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-[12px] focus:ring-slate-50 focus:border-indigo-500/30 outline-none transition-all"
                                     />
                                 </div>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Identification Code</label>
-                                    <input
-                                        required
-                                        type="text"
-                                        value={currentDept.code}
-                                        onChange={(e) => setCurrentDept({ ...currentDept, code: e.target.value })}
-                                        placeholder="CS01"
-                                        className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-[12px] focus:ring-slate-50 focus:border-indigo-500/30 outline-none transition-all uppercase"
-                                    />
+                                <div className="pt-8 flex gap-4">
+                                    <button type="button" onClick={closeModal} className="flex-1 px-8 py-5 bg-slate-50 text-slate-400 rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Cancel</button>
+                                    <button type="submit" className="flex-[2] px-8 py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">Save Department</button>
                                 </div>
-                            </div>
-                            <div className="space-y-3">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Technical Scope</label>
-                                <textarea
-                                    value={currentDept.description}
-                                    onChange={(e) => setCurrentDept({ ...currentDept, description: e.target.value })}
-                                    rows="4"
-                                    placeholder="Enter department scope and academic focus..."
-                                    className="w-full px-8 py-5 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 focus:bg-white focus:ring-[12px] focus:ring-slate-50 focus:border-indigo-500/30 outline-none transition-all"
-                                />
-                            </div>
-                            <div className="pt-8 flex gap-4">
-                                <button type="button" onClick={closeModal} className="flex-1 px-8 py-5 bg-slate-50 text-slate-400 rounded-3xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all">Abort Protocol</button>
-                                <button type="submit" className="flex-[2] px-8 py-5 bg-slate-900 text-white rounded-3xl font-black text-[10px] uppercase tracking-widest shadow-2xl hover:scale-[1.02] active:scale-95 transition-all">Commit Infrastructure</button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             <div className="p-12 border-2 border-slate-100 rounded-[3rem] bg-indigo-900 text-white flex flex-col md:flex-row items-center justify-between gap-10 group relative overflow-hidden shadow-2xl shadow-indigo-200">
                 <div className="relative z-10 flex items-center gap-8">
@@ -261,18 +257,18 @@ const AdminDepartments = () => {
                         <GraduationCap size={40} />
                     </div>
                     <div>
-                        <h4 className="text-2xl font-extrabold uppercase tracking-tight">Quota Synchronization</h4>
+                        <h4 className="text-2xl font-extrabold uppercase tracking-tight">Department Overview</h4>
                         <p className="text-indigo-300 text-sm font-medium italic mt-2 opacity-80 leading-relaxed max-w-lg">
-                            Institutional data shows <span className="text-white font-bold">{departments.length > 0 ? '92%' : '0%'} resource allocation</span> across all registered departments.
+                            You have <span className="text-white font-bold">{departments.length > 0 ? departments.length : '0'} department{departments.length !== 1 ? 's' : ''}</span> registered in the system.
                         </p>
                     </div>
                 </div>
                 <button onClick={fetchDepartments} className="relative z-10 px-10 py-5 bg-white text-indigo-900 rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all shadow-2xl active:scale-95">
-                    Process Global Sync
+                    Refresh
                 </button>
                 <div className="absolute top-0 right-0 w-80 h-80 bg-primary-500/20 rounded-full blur-[100px] -mr-40 -mt-40 transition-all duration-1000 group-hover:bg-primary-500/40" />
             </div>
-        </div>
+        </div >
     );
 };
 
