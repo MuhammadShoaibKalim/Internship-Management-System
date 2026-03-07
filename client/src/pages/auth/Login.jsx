@@ -1,36 +1,65 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Github, Chrome, Eye, EyeOff, Loader2 } from 'lucide-react';
 import API from '../../services/api';
 
 const Login = () => {
-    const [email, setEmail] = useState('');
+    const location = useLocation();
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [infoMessage, setInfoMessage] = useState(location.state?.message || '');
+
+    useEffect(() => {
+        const queryParams = new URLSearchParams(location.search);
+        if (queryParams.get('sessionExpired') === 'true') {
+            toast.error('Your session has expired. Please log in again.', { duration: 5000 });
+            // Remove the query param from URL so it doesn't keep toasting on refresh
+            window.history.replaceState({}, document.title, '/auth/login');
+        }
+    }, [location]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
+        setInfoMessage('');
 
         try {
-            const response = await API.post('/auth/login', { email, password });
+            const response = await API.post('/auth/login', { identifier, password });
 
             if (response.data.status === 'success') {
                 const { token, data } = response.data;
                 localStorage.setItem('token', token);
                 localStorage.setItem('user', JSON.stringify(data.user));
 
-                // Redirect based on role
-                const role = data.user.role;
-                navigate(`/dashboard/${role}`);
+                const user = data.user;
+                const role = user.role;
+
+                // Check if profile is incomplete (no name set)
+                // Redirect to settings if name is missing
+                if (!user.name) {
+                    navigate(`/dashboard/${role}/settings`, {
+                        state: {
+                            incompleteProfile: true,
+                            message: 'Welcome! Please complete your profile to continue.'
+                        }
+                    });
+                } else {
+                    toast.success('Welcome back! Login successful.');
+                    const from = location.state?.from?.pathname || `/dashboard/${role}`;
+                    navigate(from);
+                }
             }
         } catch (err) {
-            setError(err.response?.data?.message || 'Invalid email or password');
+            const msg = err.response?.data?.message || 'Invalid email/ID or password';
+            setError(msg);
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -51,6 +80,12 @@ const Login = () => {
                 </div>
 
                 <div className="portal-card p-8 sm:p-10">
+                    {infoMessage && (
+                        <div className="mb-6 p-4 bg-primary-50 border border-primary-100 text-primary-700 text-sm font-medium rounded-xl animate-fade-in flex items-center gap-3">
+                            <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse" />
+                            {infoMessage}
+                        </div>
+                    )}
                     {error && (
                         <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 text-sm font-medium rounded-xl animate-shake">
                             {error}
@@ -58,18 +93,18 @@ const Login = () => {
                     )}
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
-                            <label className="block text-sm font-bold text-secondary-800 mb-2">Email Address</label>
+                            <label className="block text-sm font-bold text-secondary-800 mb-2">Email Address or University ID</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary-500 transition-colors">
                                     <Mail size={18} />
                                 </div>
                                 <input
-                                    type="email"
+                                    type="text"
                                     required
-                                    placeholder="name@university.edu"
+                                    placeholder="bsf21... or email"
                                     className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all placeholder:text-slate-400"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    value={identifier}
+                                    onChange={(e) => setIdentifier(e.target.value)}
                                 />
                             </div>
                         </div>
