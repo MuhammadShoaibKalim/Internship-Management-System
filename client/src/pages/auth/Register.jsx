@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Mail, Lock, Building2, GraduationCap, Users2, ArrowRight, Eye, EyeOff, Loader2 } from 'lucide-react';
 import API from '../../services/api';
@@ -9,11 +10,9 @@ const Register = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [formData, setFormData] = useState({
-        name: '',
-        email: '',
+        identifier: '',
         password: '',
-        confirmPassword: '',
-        organization: ''
+        confirmPassword: ''
     });
     const navigate = useNavigate();
 
@@ -31,30 +30,29 @@ const Register = () => {
             }
 
             const payload = {
-                name: formData.name,
-                email: formData.email,
+                identifier: formData.identifier,
                 password: formData.password,
                 passwordConfirm: formData.confirmPassword,
                 role: role,
             };
 
-            // Add role-specific meta
-            if (role === 'student') {
-                payload.universityId = formData.organization;
-            } else if (role === 'industry') {
-                payload.companyName = formData.organization;
-            } else if (role === 'supervisor') {
-                payload.universityId = formData.organization;
-            }
-
             const response = await API.post('/auth/signup', payload);
 
             if (response.data.status === 'success') {
-                // Redirect to OTP verification with email in state
-                navigate('/auth/verify-otp', { state: { email: formData.email } });
+                // Determine the resolved email for OTP redirection
+                let targetEmail = formData.identifier;
+                if ((role === 'student' || role === 'supervisor') && !formData.identifier.includes('@')) {
+                    targetEmail = `${formData.identifier.toLowerCase()}@ue.edu.pk`;
+                }
+
+                // Redirect to OTP verification with the resolved email
+                toast.success('Account created! Please verify your OTP.');
+                navigate('/auth/verify-otp', { state: { email: targetEmail.toLowerCase() } });
             }
         } catch (err) {
-            setError(err.response?.data?.message || err.message || 'Something went wrong');
+            const msg = err.response?.data?.message || err.message || 'Something went wrong';
+            setError(msg);
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -107,49 +105,21 @@ const Register = () => {
                     )}
 
                     <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-bold text-secondary-800 mb-1.5">Full Name</label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary-500">
-                                        <User size={16} />
-                                    </div>
-                                    <input
-                                        type="text" required placeholder="John Doe"
-                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-secondary-800 mb-1.5">{role === 'industry' ? 'Company' : 'University ID'}</label>
-                                <div className="relative group">
-                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary-500">
-                                        {role === 'industry' ? <Building2 size={16} /> : <GraduationCap size={16} />}
-                                    </div>
-                                    <input
-                                        type="text" required placeholder={role === 'industry' ? 'Org Name' : '2024-UR-001'}
-                                        className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all"
-                                        value={formData.organization}
-                                        onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
                         <div>
-                            <label className="block text-sm font-bold text-secondary-800 mb-1.5">Official Email</label>
+                            <label className="block text-sm font-bold text-secondary-800 mb-1.5">
+                                {role === 'industry' ? 'Official Email' : 'University ID or Email'}
+                            </label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary-500">
                                     <Mail size={16} />
                                 </div>
                                 <input
-                                    type="email" required placeholder="name@domain.edu"
+                                    type="text"
+                                    required
+                                    placeholder={role === 'industry' ? 'hr@company.com' : 'bsf21... or email'}
                                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all"
-                                    value={formData.email}
-                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    value={formData.identifier || formData.email || ''}
+                                    onChange={(e) => setFormData({ ...formData, identifier: e.target.value, email: e.target.value })}
                                 />
                             </div>
                         </div>
