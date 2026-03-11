@@ -33,15 +33,7 @@ export const getSupervisorStats = catchAsync(async (req, res, next) => {
                 return await Application.countDocuments({ status: 'applied' });
             }
             const dept = req.user.supervisorMeta?.department;
-            console.log('--- DASHBOARD DEBUG ---');
-            console.log('Supervisor Dept:', `"${dept}"`);
             if (!dept) return 0;
-
-            const allStudents = await User.find({ role: 'student' }).limit(10).select('name studentMeta academicDetails');
-            console.log('--- ALL STUDENTS DUMP ---');
-            allStudents.forEach(s => {
-                console.log(`Student: ${s.name} | Meta: "${s.studentMeta?.department}" | Acad: "${s.academicDetails?.department}"`);
-            });
 
             const deptStudentIds = await User.find({
                 role: 'student',
@@ -51,21 +43,17 @@ export const getSupervisorStats = catchAsync(async (req, res, next) => {
                 ]
             }).distinct('_id');
 
-            console.log('Dept Students Found:', deptStudentIds.length);
-
-            const count = await Application.countDocuments({
+            return await Application.countDocuments({
                 status: 'applied',
                 student: { $in: deptStudentIds }
             });
-            console.log('Pending Endorsements Count:', count);
-            return count;
         })(),
         (async () => {
             const monitoringQueueRaw = await User.find({ role: 'student', 'studentMeta.supervisor': supervisorId })
                 .select('name studentMeta status updatedAt avatar')
                 .limit(5);
 
-            const monitoringQueue = await Promise.all(monitoringQueueRaw.map(async (student) => {
+            return await Promise.all(monitoringQueueRaw.map(async (student) => {
                 const [totalLogs, pendingLogs] = await Promise.all([
                     Log.countDocuments({ student: student._id }),
                     Log.countDocuments({ student: student._id, status: 'submitted' })
@@ -75,7 +63,6 @@ export const getSupervisorStats = catchAsync(async (req, res, next) => {
                 studentObj.stats = { totalLogs, pendingLogs };
                 return studentObj;
             }));
-            return monitoringQueue;
         })()
     ]);
 
@@ -264,45 +251,36 @@ export const getPendingApplications = catchAsync(async (req, res, next) => {
     const department = supervisor.supervisorMeta?.department?.trim();
     const isAdmin = req.user.role === 'admin';
 
-    console.log('--- DEBUG ENDORSEMENTS ---');
-    console.log('Supervisor Dept:', `"${department}"`);
-    console.log('Is Admin:', isAdmin);
-
     if (!department && !isAdmin) {
         return next(new AppError('Supervisor department not set. Please update your profile.', 400));
     }
 
+    // 1. Efficiently find relevant students first (hits indexes)
+    const deptStudentFilter = isAdmin ? {} : {
+        role: 'student',
+        $or: [
+            { 'studentMeta.department': { $regex: new RegExp(`^${department}$`, 'i') } },
+            { 'academicDetails.department': { $regex: new RegExp(`^${department}$`, 'i') } }
+        ]
+    };
+
+    const studentIds = await User.find(deptStudentFilter).distinct('_id');
+
+    // 2. Query applications using student IDs (hits student index)
     const applications = await Application.find({
-        status: 'applied'
+        status: 'applied',
+        student: { $in: studentIds }
     })
         .populate({
             path: 'student',
-            select: 'name email avatar studentMeta academicDetails',
-            // Use case-insensitive regex for department filtering on both meta and academic fields
-            match: isAdmin ? {} : {
-                $or: [
-                    { 'studentMeta.department': { $regex: new RegExp(`^${department}$`, 'i') } },
-                    { 'academicDetails.department': { $regex: new RegExp(`^${department}$`, 'i') } }
-                ]
-            }
+            select: 'name email avatar studentMeta academicDetails'
         })
         .populate('internship', 'title companyName');
 
-    console.log('Total Apps Found (applied):', applications.length);
-
-    // Debug each app's student department
-    applications.forEach((app, i) => {
-        console.log(`App ${i}: Student: ${app.student?.name}, Dept (Meta): "${app.student?.studentMeta?.department}", Dept (Academic): "${app.student?.academicDetails?.department}"`);
-    });
-
-    // Filter out applications where student didn't match the department (unless admin)
-    const filteredApplications = applications.filter(app => app.student);
-    console.log('Filtered Apps (match dept):', filteredApplications.length);
-
     res.status(200).json({
         status: 'success',
-        results: filteredApplications.length,
-        data: { applications: filteredApplications }
+        results: applications.length,
+        data: { applications }
     });
 });
 
