@@ -319,9 +319,7 @@ export const initializeInternshipPlan = catchAsync(async (req, res, next) => {
                 student: application.student,
                 application: applicationId,
                 weekNumber: i,
-                status: 'pending_student',
-                tasksPerformed: '',
-                assignedTasks: ''
+                status: 'pending_student'
             });
         }
     }
