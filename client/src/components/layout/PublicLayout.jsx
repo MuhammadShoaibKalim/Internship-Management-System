@@ -6,6 +6,11 @@ const GuestHeader = () => {
     const [scrolled, setScrolled] = useState(false);
     const [mobileMenu, setMobileMenu] = useState(false);
     const location = useLocation();
+    const navigate = useNavigate();
+
+    // Check if user is logged in
+    const storedUser = localStorage.getItem('user');
+    const user = storedUser ? JSON.parse(storedUser) : null;
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -64,12 +69,24 @@ const GuestHeader = () => {
 
                 {/* Auth Actions - Right */}
                 <div className="hidden md:flex items-center gap-4">
-                    <Link to="/auth/login" className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-all no-underline">
-                        Sign In
-                    </Link>
-                    <Link to="/auth/register" className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-primary-600 transition-all no-underline flex items-center gap-2 group">
-                        Join Platform <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                    {user ? (
+                        <Link
+                            to={`/dashboard/${user.role}`}
+                            className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-primary-600 transition-all no-underline flex items-center gap-2 group"
+                        >
+                            <Home size={14} className="group-hover:scale-110 transition-transform" />
+                            Go to Dashboard <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                    ) : (
+                        <>
+                            <Link to="/auth/login" className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-all no-underline">
+                                Sign In
+                            </Link>
+                            <Link to="/auth/register" className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-primary-600 transition-all no-underline flex items-center gap-2 group">
+                                Join Platform <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                        </>
+                    )}
                 </div>
 
                 {/* Mobile: Logo + Toggle */}
@@ -112,9 +129,21 @@ const GuestHeader = () => {
                                 {link.name}
                             </Link>
                         ))}
-                        <div className="grid grid-cols-2 gap-4 pt-4">
-                            <Link to="/auth/login" className="p-6 bg-slate-100 rounded-3xl font-black uppercase text-[10px] text-center no-underline text-slate-900">Sign In</Link>
-                            <Link to="/auth/register" className="p-6 bg-slate-900 rounded-3xl font-black uppercase text-[10px] text-center no-underline text-white">Join Now</Link>
+                        <div className="grid grid-cols-1 gap-4 pt-4">
+                            {user ? (
+                                <Link
+                                    to={`/dashboard/${user.role}`}
+                                    onClick={() => setMobileMenu(false)}
+                                    className="p-6 bg-slate-900 rounded-3xl font-black uppercase text-[10px] text-center no-underline text-white flex items-center justify-center gap-2"
+                                >
+                                    <Home size={14} /> My Dashboard
+                                </Link>
+                            ) : (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Link to="/auth/login" className="p-6 bg-slate-100 rounded-3xl font-black uppercase text-[10px] text-center no-underline text-slate-900">Sign In</Link>
+                                    <Link to="/auth/register" className="p-6 bg-slate-900 rounded-3xl font-black uppercase text-[10px] text-center no-underline text-white">Join Now</Link>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
