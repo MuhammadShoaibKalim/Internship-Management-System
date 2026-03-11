@@ -46,6 +46,7 @@ const Sidebar = ({ role = 'student', isOpen = true }) => {
             { icon: ClipboardList, label: "Weekly Logs", path: "/dashboard/student/logs" },
             { icon: UserCircle, label: "Upload CV", path: "/dashboard/student/cv-builder" },
             { icon: Award, label: "Result & Certificate", path: "/dashboard/student/result" },
+            { icon: FileText, label: "My Certificates", path: "/dashboard/student/certificates" },
         ],
         industry: [
             { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard/industry" },
@@ -58,8 +59,11 @@ const Sidebar = ({ role = 'student', isOpen = true }) => {
         ],
         supervisor: [
             { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard/supervisor" },
-            { icon: ClipboardList, label: "Endorsements", path: "/dashboard/supervisor/endorsements" },
+            { icon: Users, label: "Assigned Students", path: "/dashboard/supervisor/students" },
+            { icon: CheckSquare, label: "Endorsements", path: "/dashboard/supervisor/endorsements" },
+            { icon: ClipboardList, label: "Weekly Logs", path: "/dashboard/supervisor/logs" },
             { icon: MapPin, label: "On-site Visits", path: "/dashboard/supervisor/visits" },
+            { icon: Award, label: "Final Marking", path: "/dashboard/supervisor/marking" },
         ],
         admin: [
             { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard/admin" },
