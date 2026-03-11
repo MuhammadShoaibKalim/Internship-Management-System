@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, ChevronLeft, ChevronRight, LogOut, User, Sparkles, AlertCircle, ShieldAlert, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import API from '../../services/api';
+import API, { logout as logoutApi } from '../../services/api';
 
 const Header = ({ role, toggleSidebar, isSidebarOpen }) => {
     const navigate = useNavigate();
@@ -208,9 +208,7 @@ const Header = ({ role, toggleSidebar, isSidebarOpen }) => {
     };
 
     const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate('/auth/login');
+        logoutApi();
     };
 
     return (
