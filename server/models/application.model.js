@@ -47,6 +47,11 @@ const applicationSchema = new mongoose.Schema({
     toObject: { virtuals: true }
 });
 
+// Optimization Indexes
+applicationSchema.index({ status: 1 });
+applicationSchema.index({ student: 1 });
+applicationSchema.index({ internship: 1 });
+
 // Ensure a student can't apply to the same internship twice
 applicationSchema.index({ student: 1, internship: 1 }, { unique: true });
 
