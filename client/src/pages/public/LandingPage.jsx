@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Briefcase, BookOpen, Shield, ChevronRight, Globe, Users, TrendingUp, Sparkles, Search, MapPin, Loader2, X } from 'lucide-react';
+import { ArrowRight, Briefcase, BookOpen, Shield, ChevronRight,Home , Globe, Users, TrendingUp, Sparkles, Search, MapPin, Loader2, X } from 'lucide-react';
 import API from '../../services/api';
 import { MdOutlineViewTimeline } from "react-icons/md";
 
@@ -11,6 +11,10 @@ const LandingPage = () => {
     const [loading, setLoading] = useState(true);
 
     const [selectedJob, setSelectedJob] = useState(null);
+
+    // Check if user is logged in
+    const storedUser = localStorage.getItem('user');
+    const user = storedUser ? JSON.parse(storedUser) : null;
 
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -128,12 +132,21 @@ const LandingPage = () => {
                         </p>
 
                         <div className="flex flex-wrap gap-6 pt-4">
-                            <Link to="/internships" className="px-10 py-6 bg-slate-900 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-4xl shadow-slate-900/40 hover:bg-primary-600 transition-all no-underline flex items-center gap-4 group">
-                                EXPLORE HUB <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                            <Link to="/auth/register" className="px-10 py-6 bg-white border-2 border-slate-100 text-slate-900 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] hover:border-primary-500 transition-all no-underline flex items-center gap-4 group">
-                                JOIN TODAY
-                            </Link>
+                            {user ? (
+                                <Link to={`/dashboard/${user.role}`} className="px-10 py-6 bg-slate-900 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-4xl shadow-slate-900/40 hover:bg-primary-600 transition-all no-underline flex items-center gap-4 group">
+                                    <Home size={18} className="group-hover:scale-110 transition-transform" />
+                                    MY DASHBOARD <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                            ) : (
+                                <>
+                                    <Link to="/internships" className="px-10 py-6 bg-slate-900 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-4xl shadow-slate-900/40 hover:bg-primary-600 transition-all no-underline flex items-center gap-4 group">
+                                        EXPLORE HUB <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                    </Link>
+                                    <Link to="/auth/register" className="px-10 py-6 bg-white border-2 border-slate-100 text-slate-900 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] hover:border-primary-500 transition-all no-underline flex items-center gap-4 group">
+                                        JOIN TODAY
+                                    </Link>
+                                </>
+                            )}
                         </div>
 
                         {/* Quick Stats */}
@@ -267,9 +280,15 @@ const LandingPage = () => {
                     </h2>
                     <p className="text-slate-400 text-lg font-medium italic">Join thousands of students and companies in the most advanced academic ecosystem.</p>
                     <div className="flex justify-center gap-6 pt-6">
-                        <Link to="/auth/register" className="px-12 py-6 bg-primary-500 text-slate-900 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all shadow-4xl shadow-primary-500/20 no-underline">
-                            CREATE ACCOUNT
-                        </Link>
+                        {user ? (
+                            <Link to={`/dashboard/${user.role}`} className="px-12 py-6 bg-primary-500 text-slate-900 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all shadow-4xl shadow-primary-500/20 no-underline">
+                                GO TO DASHBOARD
+                            </Link>
+                        ) : (
+                            <Link to="/auth/register" className="px-12 py-6 bg-primary-500 text-slate-900 rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] hover:bg-white transition-all shadow-4xl shadow-primary-500/20 no-underline">
+                                CREATE ACCOUNT
+                            </Link>
+                        )}
                     </div>
                 </div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-primary-500/10 rounded-full blur-[150px]" />
