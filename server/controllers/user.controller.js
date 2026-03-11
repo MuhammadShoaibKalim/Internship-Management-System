@@ -19,24 +19,33 @@ export const updateMe = catchAsync(async (req, res, next) => {
         return next(new AppError('This route is not for password updates. Please use /updatePassword.', 400));
     }
 
-    // 2) Filtered out unwanted fields names that are not allowed to be updated directly
-    const filteredBody = {};
-    const allowedFields = ['name', 'email', 'secondaryEmails', 'phone', 'avatar', 'studentMeta', 'industryMeta', 'supervisorMeta', 'address', 'academicDetails', 'skills'];
+    // 2) Find user
+    const user = await User.findById(req.user.id);
+    if (!user) {
+        return next(new AppError('User not found', 404));
+    }
+
+    // 3) Update fields
+    const allowedFields = ['name', 'email', 'phone', 'secondaryEmails', 'avatar', 'address', 'academicDetails', 'skills', 'studentMeta', 'industryMeta', 'supervisorMeta'];
 
     Object.keys(req.body).forEach(el => {
-        if (allowedFields.includes(el)) filteredBody[el] = req.body[el];
+        if (allowedFields.includes(el)) {
+            // Special handling for nested meta objects to avoid overwriting existing sub-fields
+            if (['studentMeta', 'industryMeta', 'supervisorMeta', 'academicDetails'].includes(el) && typeof req.body[el] === 'object') {
+                user[el] = { ...user[el]?.toObject(), ...req.body[el] };
+            } else {
+                user[el] = req.body[el];
+            }
+        }
     });
 
-    // 3) Update user document
-    const updatedUser = await User.findByIdAndUpdate(req.user.id, filteredBody, {
-        new: true,
-        runValidators: true
-    });
+    // 4) Save user (bypass full validation for existing required fields like passwordConfirm)
+    await user.save({ validateBeforeSave: false });
 
     res.status(200).json({
         status: 'success',
         data: {
-            user: updatedUser
+            user
         }
     });
 });
