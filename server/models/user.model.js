@@ -141,6 +141,10 @@ const userSchema = new mongoose.Schema({
         companyAddress: String,
         website: String,
         registrationNumber: String,
+        bio: String,
+        hrEmail: String,
+        hrPhone: String,
+        headquarters: String,
         documents: [
             {
                 name: String,
@@ -175,6 +179,13 @@ const userSchema = new mongoose.Schema({
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
+
+// Optimization Indexes
+userSchema.index({ role: 1 });
+userSchema.index({ 'studentMeta.supervisor': 1 });
+userSchema.index({ 'studentMeta.department': 1 });
+userSchema.index({ 'academicDetails.department': 1 });
+userSchema.index({ status: 1 });
 
 // Middlewares
 userSchema.pre('save', async function (next) {
