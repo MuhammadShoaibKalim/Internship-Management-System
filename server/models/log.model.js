@@ -21,7 +21,9 @@ const logSchema = new mongoose.Schema({
     summary: String,    // For the list view
     tasksPerformed: {
         type: String,
-        required: [true, 'Please describe tasks performed']
+        required: [function () {
+            return this.status !== 'pending_student';
+        }, 'Please describe tasks performed']
     },
     challenges: String,
     learnings: String,
