@@ -5,6 +5,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 import globalErrorHandler from './middleware/error.middleware.js';
 import AppError from './utils/appError.utils.js';
@@ -44,6 +45,14 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 app.use(compression());
 
+
+app.use('/uploads/avatars', (req, res, next) => {
+    const filePath = path.join(__dirname, 'public/uploads/avatars', req.path);
+    if (!fs.existsSync(filePath)) {
+        return res.redirect('https://cdn-icons-png.flaticon.com/512/149/149071.png');
+    }
+    next();
+});
 
 app.use('/uploads', (req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
