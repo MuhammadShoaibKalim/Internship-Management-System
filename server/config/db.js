@@ -2,18 +2,26 @@ import mongoose from 'mongoose';
 import dns from 'dns';
 
 try {
-    dns.setServers(['8.8.8.8', '8.8.4.4']);
-    console.log("✅ Custom DNS servers set to Google (8.8.8.8)");
+    // Increase DNS lookup timeout for SRV records
+    dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+    console.log("✅ Custom DNS servers set for robust resolution");
 } catch (e) {
     console.log("Skipping DNS setting: " + e.message);
 }
 
 const connectDB = async () => {
     try {
-        //   console.log('🔌 Connecting to MongoDB...');
-        const conn = await mongoose.connect(process.env.MONGO_URI, {
-            serverSelectionTimeoutMS: 30000,
-            socketTimeoutMS: 45000,
+        const uri = process.env.MONGO_URI_STANDARD || process.env.MONGO_URI;
+
+        if (process.env.MONGO_URI_STANDARD) {
+            console.log("✅ Connected to mongodb successfully..")
+            // console.log('🔌 Connecting using Standard URI (Hotspot Fix)...');
+        }
+
+        const conn = await mongoose.connect(uri, {
+            serverSelectionTimeoutMS: 60000, // 60 seconds
+            socketTimeoutMS: 60000,
+            connectTimeoutMS: 60000
         });
 
         console.log(`✅ MongoDB Connected Successfully!`);
