@@ -40,5 +40,10 @@ const siteVisitSchema = new mongoose.Schema({
     timestamps: true
 });
 
+siteVisitSchema.index({ supervisor: 1 });
+siteVisitSchema.index({ student: 1 });
+siteVisitSchema.index({ status: 1 });
+siteVisitSchema.index({ date: 1 });
+
 const SiteVisit = mongoose.model('SiteVisit', siteVisitSchema);
 export default SiteVisit;
