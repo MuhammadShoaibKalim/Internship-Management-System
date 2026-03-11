@@ -1,4 +1,5 @@
 import Application from '../models/application.model.js';
+import Internship from '../models/internship.model.js';
 import catchAsync from '../utils/catchAsync.utils.js';
 import AppError from '../utils/appError.utils.js';
 import { createNotification } from '../utils/notification.utils.js';
@@ -6,6 +7,12 @@ import { createNotification } from '../utils/notification.utils.js';
 // 1. Submit Application
 export const applyToInternship = catchAsync(async (req, res, next) => {
     const { internshipId, resume, coverLetter } = req.body;
+
+    // 0. Check if internship exists
+    const internship = await Internship.findById(internshipId);
+    if (!internship) {
+        return next(new AppError('No internship found with that ID', 404));
+    }
 
     // Use provided resume or fallback to student's stored CV
     const finalResume = resume || req.user.cvUrl;
@@ -32,11 +39,12 @@ export const applyToInternship = catchAsync(async (req, res, next) => {
         status: 'applied'
     });
 
-    // Create Notification for industry/admin
+    // Create Notification for the industry partner who posted the internship
     await createNotification({
         type: 'APPLICATION_SUBMISSION',
-        message: `New internship application submitted: ${req.user.name} initiated request for ${application.internship.title}`,
+        message: `New internship application: ${req.user.name} applied for your posting "${internship.title}"`,
         recipientRole: 'industry',
+        user: internship.industry, // The industry partner's ID
         relatedUser: req.user.id,
         priority: 'low'
     });
